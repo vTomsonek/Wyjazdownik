@@ -115,13 +115,14 @@ final class MapPin
     public function toArray(): array
     {
         return [
-            'id'            => $this->id,
-            'pin_type'      => $this->pinType,
-            'label'         => $this->label,
-            'description'   => $this->description,
-            'geojson'       => json_decode($this->geojson, true),
-            'color'         => $this->color,
-            'created_at'    => $this->createdAt,
+            'id'             => $this->id,
+            'participant_id' => $this->participantId,
+            'pin_type'       => $this->pinType,
+            'label'          => $this->label,
+            'description'    => $this->description,
+            'geojson'        => json_decode($this->geojson, true),
+            'color'          => $this->color,
+            'created_at'     => $this->createdAt,
         ];
     }
 

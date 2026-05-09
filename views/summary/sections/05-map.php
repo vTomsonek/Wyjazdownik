@@ -1,6 +1,7 @@
 <?php
 /**
  * Sekcja 5: Mapa zbiorcza - wszystkie pinezki uczestnikow z legenda kolorow.
+ * Legenda dziala jak filter: kliknij uczestnika zeby zobaczyc tylko jego pomysly.
  * @var \App\Services\SummaryAggregator $agg
  */
 $pins         = $agg->mapPins();
@@ -15,6 +16,7 @@ $pinsJson = json_encode(array_map(static fn($p) => $p->toArray(), $pins), JSON_U
 $byParticipant = [];
 foreach ($participants as $i => $p) {
     $byParticipant[$p->id] = [
+        'id'    => $p->id,
         'name'  => $anonymous ? ('Uczestnik ' . ($i + 1)) : $p->nickname,
         'color' => $colors[$p->id] ?? '#FF6B35',
         'count' => 0,
@@ -36,7 +38,7 @@ foreach ($pins as $pin) {
                 🗺️ Mapa pomysłów ekipy
             </h2>
             <p class="text-mist text-lg max-w-2xl mx-auto">
-                Wszystkie pinezki, trasy i obszary uczestników w jednym miejscu. Każdy ma swój kolor.
+                Wszystkie pinezki, trasy i obszary uczestników w jednym miejscu. Kliknij uczestnika w legendzie, żeby zobaczyć tylko jego pomysły.
             </p>
         </header>
 
@@ -51,16 +53,31 @@ foreach ($pins as $pin) {
                          style="height: 70vh; min-height: 520px;"></div>
                 </div>
 
-                <!-- Legenda -->
+                <!-- Legenda + filtry -->
                 <aside class="rounded-2xl border border-mist/15 bg-paper dark:bg-deep p-5">
-                    <h3 class="font-display font-bold text-lg text-ink dark:text-pale mb-3">Legenda</h3>
-                    <ul class="space-y-2">
+                    <h3 class="font-display font-bold text-lg text-ink dark:text-pale mb-3">Filtruj</h3>
+                    <ul class="space-y-1.5" id="map-filter-list">
+                        <!-- Wszyscy - domyslnie aktywny -->
+                        <li>
+                            <button type="button"
+                                    class="map-filter-btn w-full flex items-center gap-3 text-sm px-3 py-2 rounded-lg transition-all is-active"
+                                    data-filter="all">
+                                <span class="inline-block w-4 h-4 rounded-full shrink-0 bg-gradient-to-br from-primary via-secondary to-accent"></span>
+                                <span class="flex-1 text-left font-semibold text-ink dark:text-pale">Wszyscy</span>
+                                <span class="text-mist font-mono text-xs"><?= count($pins) ?></span>
+                            </button>
+                        </li>
+                        <li class="border-t border-mist/15 my-2"></li>
                         <?php foreach ($byParticipant as $entry): ?>
                             <?php if ($entry['count'] === 0) continue; ?>
-                            <li class="flex items-center gap-3 text-sm">
-                                <span class="inline-block w-4 h-4 rounded-full shrink-0" style="background:<?= e($entry['color']) ?>"></span>
-                                <span class="flex-1 text-ink dark:text-pale font-medium"><?= e($entry['name']) ?></span>
-                                <span class="text-mist font-mono text-xs"><?= $entry['count'] ?></span>
+                            <li>
+                                <button type="button"
+                                        class="map-filter-btn w-full flex items-center gap-3 text-sm px-3 py-2 rounded-lg transition-all"
+                                        data-filter="<?= (int) $entry['id'] ?>">
+                                    <span class="inline-block w-4 h-4 rounded-full shrink-0" style="background:<?= e($entry['color']) ?>"></span>
+                                    <span class="flex-1 text-left text-ink dark:text-pale font-medium"><?= e($entry['name']) ?></span>
+                                    <span class="text-mist font-mono text-xs"><?= $entry['count'] ?></span>
+                                </button>
                             </li>
                         <?php endforeach; ?>
                     </ul>
@@ -69,6 +86,16 @@ foreach ($pins as $pin) {
                     </p>
                 </aside>
             </div>
+
+            <style>
+                .map-filter-btn { cursor: pointer; }
+                .map-filter-btn:hover { background-color: rgba(107, 114, 128, 0.1); }
+                .map-filter-btn.is-active {
+                    background-color: rgba(255, 107, 53, 0.12);
+                    box-shadow: inset 3px 0 0 #FF6B35;
+                }
+                .map-filter-btn.is-dimmed { opacity: 0.45; }
+            </style>
 
             <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" crossorigin=""></script>
             <script src="<?= e(asset('assets/js/map-utils.js')) ?>"></script>
@@ -89,16 +116,62 @@ foreach ($pins as $pin) {
                         attribution: '&copy; OpenStreetMap',
                     }).addTo(map);
 
-                    const group = L.featureGroup().addTo(map);
+                    // Trzymamy warstwy pogrupowane wg participant_id zeby moc filtrowac.
+                    // Struktura: { [participantId]: [layer, layer, ...] }
+                    const layersByParticipant = {};
+                    const allLayers = [];
+
                     for (const pin of pins) {
                         const layer = window.MapUtils.geojsonToLayer(pin, '#FF6B35');
                         if (!layer) continue;
                         layer.bindPopup(window.MapUtils.buildPopup(pin));
-                        group.addLayer(layer);
+                        const pid = pin.participant_id;
+                        if (!layersByParticipant[pid]) layersByParticipant[pid] = [];
+                        layersByParticipant[pid].push(layer);
+                        allLayers.push(layer);
                     }
-                    if (group.getLayers().length > 0) {
-                        try { map.fitBounds(group.getBounds(), { maxZoom: 9, padding: [40, 40] }); } catch (e) {}
-                    }
+
+                    // Aktywna grupa - to co jest aktualnie pokazane na mapie
+                    let group = L.featureGroup().addTo(map);
+                    const showLayers = (layers) => {
+                        group.clearLayers();
+                        for (const layer of layers) group.addLayer(layer);
+                        if (group.getLayers().length > 0) {
+                            try { map.fitBounds(group.getBounds(), { maxZoom: 9, padding: [40, 40] }); } catch (e) {}
+                        }
+                    };
+
+                    // Default: wszyscy
+                    showLayers(allLayers);
+
+                    // Filter buttons
+                    const buttons = document.querySelectorAll('.map-filter-btn');
+                    buttons.forEach((btn) => {
+                        btn.addEventListener('click', () => {
+                            const filter = btn.getAttribute('data-filter');
+
+                            buttons.forEach((b) => {
+                                b.classList.remove('is-active');
+                                b.classList.remove('is-dimmed');
+                            });
+                            btn.classList.add('is-active');
+
+                            if (filter === 'all') {
+                                showLayers(allLayers);
+                            } else {
+                                const pid = parseInt(filter, 10);
+                                const layers = layersByParticipant[pid] || [];
+                                showLayers(layers);
+                                // Inne przyciski przygaszone dla podkreslenia ze filtrujemy
+                                buttons.forEach((b) => {
+                                    if (b !== btn && b.getAttribute('data-filter') !== 'all') {
+                                        b.classList.add('is-dimmed');
+                                    }
+                                });
+                            }
+                        });
+                    });
+
                     el.addEventListener('click', () => map.scrollWheelZoom.enable(), { once: true });
                 })();
             </script>

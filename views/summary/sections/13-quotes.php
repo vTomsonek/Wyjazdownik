@@ -22,14 +22,44 @@ foreach ($participants as $i => $p) {
     }
 }
 
+// Parser tekstu deal-breakera - wykrywa czy to lista (myslniki/bullets) czy paragraf
+$parseBreaker = static function (string $text): array {
+    $lines = preg_split('/\r\n|\r|\n/', trim($text)) ?: [];
+    // Zlapie: -, *, •, ·, ▪, ‣, ◦, en/em dash na poczatku linii
+    $bulletPattern = '/^\s*[-*•·▪‣◦–—]+\s*/u';
+
+    $items = [];
+    $bulletCount = 0;
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '') continue;
+        if (preg_match($bulletPattern, $trimmed)) {
+            $bulletCount++;
+            $items[] = trim((string) preg_replace($bulletPattern, '', $trimmed));
+        } else {
+            $items[] = $trimmed;
+        }
+    }
+
+    // Traktuj jako liste tylko gdy mamy >= 2 linii i wiekszosc z myslnikami
+    $isList = count($items) >= 2 && $bulletCount >= 2;
+
+    return ['is_list' => $isList, 'items' => $items];
+};
+
 // Zbierz deal_breakers
 $breakers = [];
 foreach ($participants as $i => $p) {
     $b = trim((string) ($responses[$p->id]['deal_breakers'] ?? ''));
     if ($b !== '') {
+        $parsed = $parseBreaker($b);
         $breakers[] = [
-            'name' => $anonymous ? ('Uczestnik ' . ($i + 1)) : $p->nickname,
-            'text' => $b,
+            'name'    => $anonymous ? ('Uczestnik ' . ($i + 1)) : $p->nickname,
+            'text'    => $b,
+            'color'   => $colors[$p->id] ?? '#FF6B35',
+            'avatar'  => !$anonymous ? $p->avatarPath : null,
+            'is_list' => $parsed['is_list'],
+            'items'   => $parsed['items'],
         ];
     }
 }
@@ -68,7 +98,7 @@ foreach ($participants as $i => $p) {
                                 <?= e(mb_strtoupper(mb_substr($plan['name'], 0, 1))) ?>
                             </div>
                         <?php endif; ?>
-                        <cite class="not-italic font-medium text-ink dark:text-pale text-sm">— <?= e($plan['name']) ?></cite>
+                        <cite class="not-italic font-medium text-ink dark:text-pale text-sm"><?= e($plan['name']) ?></cite>
                     </footer>
                 </blockquote>
                 <?php endforeach; ?>
@@ -79,19 +109,48 @@ foreach ($participants as $i => $p) {
             <h3 class="font-display font-bold text-xl md:text-2xl mb-5 text-ink dark:text-pale">
                 🚧 Deal-breakery ekipy
             </h3>
-            <div class="rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800 p-5 md:p-6">
-                <ul class="space-y-3">
-                    <?php foreach ($breakers as $b): ?>
-                    <li class="text-sm md:text-base">
-                        <strong class="text-red-700 dark:text-red-300 font-semibold"><?= e($b['name']) ?>:</strong>
-                        <span class="text-ink dark:text-pale"><?= nl2br(e($b['text'])) ?></span>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-                <p class="mt-4 text-xs text-mist">
-                    To są rzeczy które uniemożliwią ludziom pojechanie. Brać pod uwagę przy wyborze.
-                </p>
+            <div class="grid md:grid-cols-2 gap-4 md:gap-5">
+                <?php foreach ($breakers as $b): ?>
+                <article class="relative rounded-2xl bg-red-50/60 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 p-4 md:p-5 overflow-hidden">
+                    <!-- Czerwony pasek z lewej -->
+                    <span class="absolute inset-y-0 left-0 w-1 bg-red-500"></span>
+
+                    <header class="flex items-center gap-3 mb-3 pb-3 border-b border-red-200/70 dark:border-red-900/40 ml-2">
+                        <?php if ($b['avatar']): ?>
+                            <img src="<?= e(asset($b['avatar'])) ?>" alt=""
+                                 class="w-10 h-10 rounded-full object-cover border-2 shrink-0"
+                                 style="border-color: <?= e($b['color']) ?>">
+                        <?php else: ?>
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0"
+                                 style="background: <?= e($b['color']) ?>">
+                                <?= e(mb_strtoupper(mb_substr($b['name'], 0, 1))) ?>
+                            </div>
+                        <?php endif; ?>
+                        <span class="font-semibold text-ink dark:text-pale"><?= e($b['name']) ?></span>
+                    </header>
+
+                    <div class="ml-2">
+                        <?php if ($b['is_list']): ?>
+                            <ul class="space-y-2 text-sm md:text-base text-ink dark:text-pale">
+                                <?php foreach ($b['items'] as $item): ?>
+                                <li class="flex gap-2.5">
+                                    <span class="text-red-500 mt-0.5 shrink-0" aria-hidden="true">✗</span>
+                                    <span class="flex-1 leading-snug"><?= e($item) ?></span>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php else: ?>
+                            <p class="text-sm md:text-base text-ink dark:text-pale leading-relaxed">
+                                <?= nl2br(e($b['text'])) ?>
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                </article>
+                <?php endforeach; ?>
             </div>
+            <p class="mt-4 text-xs text-mist text-center">
+                To są rzeczy które uniemożliwią ludziom pojechanie. Brać pod uwagę przy wyborze.
+            </p>
             <?php endif; ?>
 
         <?php endif; ?>

@@ -8,6 +8,19 @@
  */
 $isCompleted = $participant->isCompleted();
 $startUrl    = url('/p/' . $participant->accessToken . '/wizard/1');
+
+// Inteligentne dopasowanie wysokosci bannera do jego proporcji.
+$bannerAspect = null;
+if ($trip->bannerImage) {
+    $publicDir = dirname(__DIR__, 2) . '/public/';
+    $absPath   = $publicDir . ltrim($trip->bannerImage, '/');
+    if (is_file($absPath)) {
+        $size = @getimagesize($absPath);
+        if ($size && $size[0] > 0 && $size[1] > 0) {
+            $bannerAspect = $size[0] / $size[1];
+        }
+    }
+}
 ?>
 
 <?php if ($isAdminEdit): ?>
@@ -17,8 +30,11 @@ $startUrl    = url('/p/' . $participant->accessToken . '/wizard/1');
 <section class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10 md:py-16 3xl:py-24">
 
     <?php if ($trip->bannerImage): ?>
-        <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
-             class="w-full h-48 md:h-64 object-cover rounded-3xl mb-8 shadow-pop" loading="lazy">
+        <div class="w-full mb-8 rounded-3xl overflow-hidden shadow-pop bg-paper/40 dark:bg-deep/40"
+             style="<?php if ($bannerAspect !== null): ?>aspect-ratio: <?= number_format($bannerAspect, 4, '.', '') ?>;<?php endif; ?> max-height: 480px;">
+            <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
+                 class="w-full h-full object-contain" loading="lazy">
+        </div>
     <?php endif; ?>
 
     <div class="text-center">
