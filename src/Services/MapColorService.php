@@ -34,6 +34,17 @@ final class MapColorService
     }
 
     /**
+     * Custom color z DB (jesli ustawiony przez admina) lub fallback do md5 z tokenu.
+     */
+    public static function forParticipant(\App\Models\Participant $p): string
+    {
+        if ($p->color !== null && $p->color !== '') {
+            return $p->color;
+        }
+        return self::forToken($p->accessToken);
+    }
+
+    /**
      * @return list<string>
      */
     public static function palette(): array

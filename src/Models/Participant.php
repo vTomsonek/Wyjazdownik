@@ -17,6 +17,7 @@ final class Participant
         public readonly ?string $completedAt,
         public readonly ?string $lastActivityAt,
         public readonly string $createdAt,
+        public readonly ?string $color = null,
     ) {}
 
     public static function findById(int $id): ?self
@@ -73,7 +74,7 @@ final class Participant
 
     public function update(array $data): self
     {
-        $allowed = ['nickname', 'avatar_path'];
+        $allowed = ['nickname', 'avatar_path', 'color'];
         $sets = [];
         $params = ['id' => $this->id];
         foreach ($allowed as $f) {
@@ -119,6 +120,7 @@ final class Participant
             completedAt:    $row['completed_at']     !== null ? (string) $row['completed_at']     : null,
             lastActivityAt: $row['last_activity_at'] !== null ? (string) $row['last_activity_at'] : null,
             createdAt:      (string) $row['created_at'],
+            color:          isset($row['color']) && $row['color'] !== null ? (string) $row['color'] : null,
         );
     }
 }

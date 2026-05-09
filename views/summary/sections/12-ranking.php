@@ -38,7 +38,7 @@ $gradient = static function (string $color): string {
                 <?php foreach ($awards as $a):
                     $winners = $a['winners'];
                     $first   = $winners[0];
-                    $color   = MapColorService::forToken($first->accessToken);
+                    $color   = MapColorService::forParticipant($first);
                 ?>
                 <div class="rounded-2xl p-5 md:p-6 border border-white/10 hover:scale-[1.02] transition"
                      style="<?= $gradient($color) ?>">

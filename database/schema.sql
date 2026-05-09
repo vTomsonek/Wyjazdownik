@@ -107,6 +107,7 @@ CREATE TABLE `participants` (
     `trip_id`          BIGINT UNSIGNED NOT NULL,
     `nickname`         VARCHAR(60) NOT NULL,
     `avatar_path`      VARCHAR(255) NULL DEFAULT NULL,
+    `color`            VARCHAR(20) NULL DEFAULT NULL,
     `access_token`     CHAR(64) NOT NULL,
     `completed_at`     TIMESTAMP NULL DEFAULT NULL,
     `last_activity_at` TIMESTAMP NULL DEFAULT NULL,

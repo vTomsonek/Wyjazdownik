@@ -60,6 +60,30 @@ $accessLink    = url('/p/' . $participant->accessToken);
             </div>
         </div>
 
+        <!-- Kolor uczestnika -->
+        <?php
+        $palette = \App\Services\MapColorService::palette();
+        $currentColor = $participant->color;
+        ?>
+        <div>
+            <label class="block text-sm font-medium text-ink dark:text-pale mb-1.5">
+                Kolor uczestnika
+                <span class="text-mist text-xs font-normal">(używany na mapie i w rankingu)</span>
+            </label>
+            <div class="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-cream dark:bg-night border-2 border-mist/15">
+                <label class="cursor-pointer" title="Automatyczny (z access_token)">
+                    <input type="radio" name="color" value="" <?= $currentColor === null ? 'checked' : '' ?> class="sr-only peer">
+                    <span class="block w-9 h-9 rounded-full border-2 border-mist/30 peer-checked:border-ink dark:peer-checked:border-pale peer-checked:scale-110 transition flex items-center justify-center text-xs">auto</span>
+                </label>
+                <?php foreach ($palette as $hex): ?>
+                <label class="cursor-pointer" title="<?= e($hex) ?>">
+                    <input type="radio" name="color" value="<?= e($hex) ?>" <?= $currentColor === $hex ? 'checked' : '' ?> class="sr-only peer">
+                    <span class="block w-9 h-9 rounded-full border-2 border-transparent peer-checked:border-ink dark:peer-checked:border-pale peer-checked:scale-110 transition" style="background:<?= e($hex) ?>"></span>
+                </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <!-- Ksywka -->
         <div>
             <label for="nickname" class="block text-sm font-medium text-ink dark:text-pale mb-1.5">Ksywka *</label>

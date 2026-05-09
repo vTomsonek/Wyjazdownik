@@ -9,15 +9,31 @@ $completed    = $agg->completedCount();
 $total        = $agg->totalCount();
 $colors       = $agg->colorMap();
 $anonymous    = $agg->isAnonymous();
+
+// Inteligentne dopasowanie wysokosci sekcji do proporcji bannera.
+// Odczytujemy wymiary uploadowanego obrazka i ustawiamy aspect-ratio,
+// dzieki czemu caly banner jest widoczny niezaleznie od jego rozmiaru.
+$bannerAspect = null;
+if ($trip->bannerImage) {
+    $publicDir = dirname(__DIR__, 3) . '/public/';
+    $absPath   = $publicDir . ltrim($trip->bannerImage, '/');
+    if (is_file($absPath)) {
+        $size = @getimagesize($absPath);
+        if ($size && $size[0] > 0 && $size[1] > 0) {
+            $bannerAspect = $size[0] / $size[1];
+        }
+    }
+}
 ?>
-<section class="relative overflow-hidden">
+<section class="relative overflow-hidden flex items-center"
+    <?php if ($bannerAspect !== null): ?>style="aspect-ratio: <?= number_format($bannerAspect, 4, '.', '') ?>;"<?php endif; ?>>
     <?php if ($trip->bannerImage): ?>
         <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
-             class="absolute inset-0 w-full h-full object-cover opacity-30 dark:opacity-20" loading="lazy">
+             class="absolute inset-0 w-full h-full object-cover object-center opacity-40 dark:opacity-30" loading="lazy">
     <?php endif; ?>
     <div class="absolute inset-0 -z-10 bg-gradient-to-br from-cream via-cream to-accent/20 dark:from-night dark:via-night dark:to-secondary/10"></div>
 
-    <div class="relative mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-16 md:py-24 3xl:py-32">
+    <div class="relative w-full mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-16 md:py-24 3xl:py-32">
 
         <span class="inline-block mb-4 px-4 py-1.5 rounded-full text-sm font-semibold bg-primary/10 text-primary backdrop-blur">
             <?= e(date('d.m', strtotime($trip->dateFrom))) ?> – <?= e(date('d.m.Y', strtotime($trip->dateTo))) ?>

@@ -228,7 +228,7 @@ final class RankingService
             ],
             'backpacker' => [
                 'icon' => '🎒', 'name' => 'Backpacker',
-                'description' => 'Niski budżet, plecak, dam radę spać byle gdzie.',
+                'description' => 'Plecak, hostel, namiot - dam radę spać byle gdzie.',
                 'score' => static function ($p, $r): float {
                     $s = 0;
                     $b = is_numeric($r['budget_range'] ?? null) ? (float) $r['budget_range'] : 99999;

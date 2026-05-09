@@ -25,7 +25,7 @@ final class ParticipantMapController extends Controller
 
         $this->json([
             'ok'    => true,
-            'color' => MapColorService::forToken($participant->accessToken),
+            'color' => MapColorService::forParticipant($participant),
             'pins'  => $pins,
         ]);
     }
@@ -53,7 +53,7 @@ final class ParticipantMapController extends Controller
             'label'          => $label !== '' ? mb_substr($label, 0, 150) : null,
             'description'    => $desc  !== '' ? mb_substr($desc, 0, 5000) : null,
             'geojson'        => json_encode($geojson, JSON_UNESCAPED_UNICODE),
-            'color'          => MapColorService::forToken($participant->accessToken),
+            'color'          => MapColorService::forParticipant($participant),
         ]);
 
         $this->logIfAdmin($trip, $participant, 'map_pin_created', null, $pin->toArray());

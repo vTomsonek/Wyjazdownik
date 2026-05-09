@@ -134,7 +134,7 @@ final class SummaryAggregator
     {
         $out = [];
         foreach ($this->participants() as $p) {
-            $out[$p->id] = MapColorService::forToken($p->accessToken);
+            $out[$p->id] = MapColorService::forParticipant($p);
         }
         return $out;
     }

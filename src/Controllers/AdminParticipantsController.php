@@ -106,6 +106,16 @@ final class AdminParticipantsController extends Controller
         }
 
         $update = ['nickname' => $nickname];
+
+        // Color (radio - puste znaczy "auto" czyli null w DB)
+        $colorInput = (string) $request->input('color', '');
+        $palette    = \App\Services\MapColorService::palette();
+        if ($colorInput === '') {
+            $update['color'] = null;
+        } elseif (in_array($colorInput, $palette, true)) {
+            $update['color'] = $colorInput;
+        }
+
         try {
             $avatarPath = UploadService::uploadAvatar($_FILES['avatar'] ?? []);
             if ($avatarPath !== null) {
@@ -118,7 +128,16 @@ final class AdminParticipantsController extends Controller
             $this->redirect(url('/admin/participants/' . $participant->id . '/edit'));
         }
 
-        $participant->update($update);
+        $participant = $participant->update($update);
+
+        // Jesli admin zmienil kolor - propaguj do wszystkich pinezek uczestnika.
+        if (array_key_exists('color', $update)) {
+            $effectiveColor = \App\Services\MapColorService::forParticipant($participant);
+            \App\Database\Connection::get()
+                ->prepare('UPDATE participant_map_pins SET color = :c WHERE participant_id = :p')
+                ->execute(['c' => $effectiveColor, 'p' => $participant->id]);
+        }
+
         flash('success', 'Zapisano zmiany.');
         $this->redirect(url('/admin/participants/' . $participant->id . '/edit'));
     }

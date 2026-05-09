@@ -96,5 +96,27 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
 
     <script src="<?= e(asset('assets/js/app.js')) ?>"></script>
     <script src="<?= e(asset('assets/js/summary.js')) ?>"></script>
+
+    <!-- Twemoji - jednolite emoji wszedzie (Windows, Linux, mobile) - flagi tez dzialaja na PC -->
+    <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
+    <script>
+        if (window.twemoji) {
+            twemoji.parse(document.body, {
+                folder: 'svg',
+                ext: '.svg',
+                base: 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/'
+            });
+        }
+    </script>
+    <style>
+        /* Twemoji obrazki - inline z tekstem, naturalny rozmiar */
+        img.emoji {
+            height: 1em;
+            width: 1em;
+            margin: 0 .05em 0 .1em;
+            vertical-align: -0.1em;
+            display: inline-block;
+        }
+    </style>
 </body>
 </html>

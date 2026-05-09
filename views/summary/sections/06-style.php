@@ -115,6 +115,101 @@ $bar = static function (string $label, int $votes, int $total, string $color): s
                 </div>
             </div>
 
+            <!-- Doswiadczenie podroznicze + Dzielenie pokoju (drugi rzad) -->
+            <?php
+            $expOpts = QuestionLabels::get('travel_experience')['options'] ?? [];
+            $expOrder = ['first_time', 'europe_some', 'worldwide_some', 'globetrotter'];
+            $expCounts = array_fill_keys($expOrder, 0);
+            foreach ($responses as $resp) {
+                $v = $resp['travel_experience'] ?? null;
+                if (is_string($v) && isset($expCounts[$v])) $expCounts[$v]++;
+            }
+            $expRank = ['first_time' => 1, 'europe_some' => 2, 'worldwide_some' => 3, 'globetrotter' => 4];
+            $values = [];
+            foreach ($responses as $r) {
+                $v = $r['travel_experience'] ?? null;
+                if (is_string($v) && isset($expRank[$v])) $values[] = $expRank[$v];
+            }
+            $minRank = !empty($values) ? min($values) : 0;
+            if ($minRank === 1) {
+                $verdict = '🐣 W ekipie ktoś mało jeździł. Postawcie raczej na sprawdzone, blisko (UE).';
+                $verdictColor = 'bg-amber-500/15 border-amber-400 dark:border-amber-700';
+            } elseif ($minRank >= 3) {
+                $verdict = '🌍 Cała ekipa to doświadczeni podróżnicy. Możecie ruszać w dalekie kierunki.';
+                $verdictColor = 'bg-emerald-500/15 border-emerald-400 dark:border-emerald-700';
+            } else {
+                $verdict = '✈️ Mieszany skład. Europa to bezpieczny wybór, dalsze kraje OK ze wsparciem dla mniej obytych.';
+                $verdictColor = 'bg-secondary/15 border-secondary/40';
+            }
+
+            // Room sharing
+            $roomOpts = QuestionLabels::get('room_sharing')['options'] ?? [];
+            $roomOrder = ['private_only', 'share_with_friends', 'dormitory_ok', 'no_bed_sharing'];
+            $roomCounts = array_fill_keys($roomOrder, 0);
+            foreach ($responses as $resp) {
+                $v = $resp['room_sharing'] ?? null;
+                if (is_string($v) && isset($roomCounts[$v])) $roomCounts[$v]++;
+            }
+            $privateOnly = $roomCounts['private_only'] ?? 0;
+            $roomVerdict = '';
+            $roomColor   = 'bg-mist/10 border-mist/30';
+            if ($privateOnly > 0) {
+                $roomVerdict = '🚪 ' . $privateOnly . ' os. wymaga osobnego pokoju - rezerwujcie noclegi z odpowiednią liczbą pokoi.';
+                $roomColor   = 'bg-rose-500/10 border-rose-400 dark:border-rose-700';
+            } elseif (($roomCounts['dormitory_ok'] ?? 0) === $count) {
+                $roomVerdict = '🛏️ Cała ekipa OK z dormitorium - hostele to opcja, można sporo zaoszczędzić.';
+                $roomColor   = 'bg-emerald-500/15 border-emerald-400 dark:border-emerald-700';
+            } else {
+                $roomVerdict = '👥 Ekipa OK z dzieleniem pokoju ze znajomymi - klasyczne apartamenty, jeden duży dom.';
+                $roomColor   = 'bg-secondary/15 border-secondary/40';
+            }
+            ?>
+            <div class="mt-5 grid md:grid-cols-2 gap-5">
+                <!-- Doświadczenie podroznicze -->
+                <div class="rounded-2xl bg-cream dark:bg-night border border-mist/15 p-5 md:p-6">
+                    <h3 class="font-display font-bold text-lg md:text-xl mb-4 text-ink dark:text-pale">🎒 Doświadczenie podróżnicze</h3>
+                    <div class="space-y-2 mb-4">
+                        <?php foreach ($expOrder as $key):
+                            $votes = $expCounts[$key];
+                            if ($votes === 0) continue;
+                            $color = match ($key) {
+                                'first_time'      => 'bg-amber-400',
+                                'europe_some'     => 'bg-secondary',
+                                'worldwide_some'  => 'bg-primary',
+                                'globetrotter'    => 'bg-emerald-500',
+                                default           => 'bg-mist',
+                            };
+                            echo $bar($expOpts[$key] ?? $key, $votes, $count, $color);
+                        endforeach; ?>
+                    </div>
+                    <div class="rounded-xl <?= $verdictColor ?> border p-4 md:p-5 text-sm text-ink dark:text-pale leading-relaxed">
+                        <?= e($verdict) ?>
+                    </div>
+                </div>
+
+                <!-- Dzielenie pokoju -->
+                <div class="rounded-2xl bg-cream dark:bg-night border border-mist/15 p-5 md:p-6">
+                    <h3 class="font-display font-bold text-lg md:text-xl mb-4 text-ink dark:text-pale">🛏️ Dzielenie pokoju</h3>
+                    <div class="space-y-2 mb-4">
+                        <?php foreach ($roomOrder as $key):
+                            $votes = $roomCounts[$key];
+                            if ($votes === 0) continue;
+                            $color = match ($key) {
+                                'private_only'       => 'bg-rose-400',
+                                'share_with_friends' => 'bg-secondary',
+                                'dormitory_ok'       => 'bg-emerald-500',
+                                'no_bed_sharing'     => 'bg-amber-400',
+                                default              => 'bg-mist',
+                            };
+                            echo $bar($roomOpts[$key] ?? $key, $votes, $count, $color);
+                        endforeach; ?>
+                    </div>
+                    <div class="rounded-xl <?= $roomColor ?> border p-4 md:p-5 text-sm text-ink dark:text-pale leading-relaxed">
+                        <?= e($roomVerdict) ?>
+                    </div>
+                </div>
+            </div>
+
         <?php endif; ?>
     </div>
 </section>
