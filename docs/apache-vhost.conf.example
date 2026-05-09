@@ -1,0 +1,72 @@
+# ============================================================================
+# Wyjazdownik.pl - Apache VirtualHost (Ubuntu 22+ z PHP-FPM)
+# ============================================================================
+# Skopiuj do /etc/apache2/sites-available/wyjazdownik.conf, potem:
+#   sudo a2ensite wyjazdownik
+#   sudo a2enmod rewrite headers expires deflate proxy_fcgi setenvif http2
+#   sudo systemctl reload apache2
+#
+# Dopiero PO konfiguracji DNS i certbot uzyj ponizszej wersji z HTTPS.
+# Na pierwszym deployu zostaw TYLKO blok <VirtualHost *:80> bez SSL.
+
+# ============================================================================
+# HTTP - redirect do HTTPS (po wystawieniu certyfikatu)
+# ============================================================================
+<VirtualHost *:80>
+    ServerName wyjazdownik.pl
+    ServerAlias www.wyjazdownik.pl
+
+    # Przed certbotem - serwuj normalnie. Po: certbot doklei RewriteRule.
+    DocumentRoot /var/www/wyjazdownik/public
+    SetEnv APP_ENV prod
+
+    <Directory /var/www/wyjazdownik/public>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:/run/php/php8.1-fpm-wyjazdownik.sock|fcgi://localhost"
+    </FilesMatch>
+
+    ErrorLog  ${APACHE_LOG_DIR}/wyjazdownik-error.log
+    CustomLog ${APACHE_LOG_DIR}/wyjazdownik-access.log combined
+</VirtualHost>
+
+# ============================================================================
+# HTTPS - prawdziwy production block
+# Aktywny po: sudo certbot --apache -d wyjazdownik.pl -d www.wyjazdownik.pl
+# Certbot dorzuci automatycznie `<VirtualHost *:443>` ze sciezkami do certyfikatow.
+# Ponizej szablon do edycji ZAMIAST tego co certbot wygeneruje (jesli chcesz pelnia kontroli).
+# ============================================================================
+
+#<VirtualHost *:443>
+#    ServerName wyjazdownik.pl
+#    ServerAlias www.wyjazdownik.pl
+#
+#    DocumentRoot /var/www/wyjazdownik/public
+#    SetEnv APP_ENV prod
+#
+#    <Directory /var/www/wyjazdownik/public>
+#        Options -Indexes +FollowSymLinks
+#        AllowOverride All
+#        Require all granted
+#    </Directory>
+#
+#    <FilesMatch \.php$>
+#        SetHandler "proxy:unix:/run/php/php8.1-fpm-wyjazdownik.sock|fcgi://localhost"
+#    </FilesMatch>
+#
+#    # SSL - sciezki dolozone przez certbot
+#    SSLEngine on
+#    SSLCertificateFile      /etc/letsencrypt/live/wyjazdownik.pl/fullchain.pem
+#    SSLCertificateKeyFile   /etc/letsencrypt/live/wyjazdownik.pl/privkey.pem
+#    Include /etc/letsencrypt/options-ssl-apache.conf
+#
+#    # HTTP/2 dla szybszego ladowania assetow
+#    Protocols h2 http/1.1
+#
+#    ErrorLog  ${APACHE_LOG_DIR}/wyjazdownik-error.log
+#    CustomLog ${APACHE_LOG_DIR}/wyjazdownik-access.log combined
+#</VirtualHost>

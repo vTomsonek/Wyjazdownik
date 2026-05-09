@@ -1,0 +1,2 @@
+# Storage is outside the document root, but defence-in-depth.
+Require all denied

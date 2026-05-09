@@ -1,0 +1,150 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Request;
+use App\Helpers\Csrf;
+use App\Helpers\Validator;
+use App\Models\Participant;
+use App\Models\Trip;
+use App\Services\AuthService;
+use App\Services\UploadService;
+use RuntimeException;
+
+final class AdminParticipantsController extends Controller
+{
+    public function listParticipants(Request $request, array $args): never
+    {
+        $admin = (new AuthService())->currentAdmin();
+        $trip = Trip::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($trip === null) $this->notFound();
+
+        $this->render('admin/trip-participants', [
+            'title'        => 'Uczestnicy: ' . $trip->name,
+            'trip'         => $trip,
+            'participants' => Participant::listForTrip($trip->id),
+            'errors'       => $_SESSION['_form_errors'] ?? [],
+            'old'          => $_SESSION['_form_old']    ?? [],
+            'flashSuccess' => flash('success'),
+            'flashError'   => flash('error'),
+        ], 'admin');
+        unset($_SESSION['_form_errors'], $_SESSION['_form_old']);
+    }
+
+    public function createParticipant(Request $request, array $args): never
+    {
+        Csrf::validate();
+        $admin = (new AuthService())->currentAdmin();
+        $trip = Trip::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($trip === null) $this->notFound();
+
+        $nickname = trim((string) $request->input('nickname', ''));
+        $v = new Validator(['nickname' => $nickname]);
+        $v->required('nickname', 'Podaj ksywke.')->maxLength('nickname', 60);
+
+        if (!$v->isValid()) {
+            $_SESSION['_form_errors'] = $v->errors();
+            $_SESSION['_form_old']    = ['nickname' => $nickname];
+            $this->redirect(url('/admin/trips/' . $trip->id . '/participants'));
+        }
+
+        try {
+            $avatarPath = UploadService::uploadAvatar($_FILES['avatar'] ?? []);
+        } catch (RuntimeException $e) {
+            $_SESSION['_form_errors'] = ['avatar' => $e->getMessage()];
+            $_SESSION['_form_old']    = ['nickname' => $nickname];
+            $this->redirect(url('/admin/trips/' . $trip->id . '/participants'));
+        }
+
+        $p = Participant::create([
+            'trip_id'     => $trip->id,
+            'nickname'    => $nickname,
+            'avatar_path' => $avatarPath,
+        ]);
+
+        flash('success', 'Dodano uczestnika.');
+        $this->redirect(url('/admin/trips/' . $trip->id . '/participants') . '#participant-' . $p->id);
+    }
+
+    public function editParticipant(Request $request, array $args): never
+    {
+        $admin = (new AuthService())->currentAdmin();
+        $found = Participant::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($found === null) $this->notFound();
+        [$participant, $trip] = $found;
+
+        $this->render('admin/participant-form', [
+            'title'        => 'Edycja uczestnika: ' . $participant->nickname,
+            'trip'         => $trip,
+            'participant'  => $participant,
+            'errors'       => $_SESSION['_form_errors'] ?? [],
+            'old'          => $_SESSION['_form_old']    ?? [],
+            'flashSuccess' => flash('success'),
+            'flashError'   => flash('error'),
+        ], 'admin');
+        unset($_SESSION['_form_errors'], $_SESSION['_form_old']);
+    }
+
+    public function updateParticipant(Request $request, array $args): never
+    {
+        Csrf::validate();
+        $admin = (new AuthService())->currentAdmin();
+        $found = Participant::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($found === null) $this->notFound();
+        [$participant, $trip] = $found;
+
+        $nickname = trim((string) $request->input('nickname', ''));
+        $v = new Validator(['nickname' => $nickname]);
+        $v->required('nickname', 'Podaj ksywke.')->maxLength('nickname', 60);
+
+        if (!$v->isValid()) {
+            $_SESSION['_form_errors'] = $v->errors();
+            $_SESSION['_form_old']    = ['nickname' => $nickname];
+            $this->redirect(url('/admin/participants/' . $participant->id . '/edit'));
+        }
+
+        $update = ['nickname' => $nickname];
+        try {
+            $avatarPath = UploadService::uploadAvatar($_FILES['avatar'] ?? []);
+            if ($avatarPath !== null) {
+                UploadService::delete($participant->avatarPath);
+                $update['avatar_path'] = $avatarPath;
+            }
+        } catch (RuntimeException $e) {
+            $_SESSION['_form_errors'] = ['avatar' => $e->getMessage()];
+            $_SESSION['_form_old']    = ['nickname' => $nickname];
+            $this->redirect(url('/admin/participants/' . $participant->id . '/edit'));
+        }
+
+        $participant->update($update);
+        flash('success', 'Zapisano zmiany.');
+        $this->redirect(url('/admin/participants/' . $participant->id . '/edit'));
+    }
+
+    public function deleteParticipant(Request $request, array $args): never
+    {
+        Csrf::validate();
+        $admin = (new AuthService())->currentAdmin();
+        $found = Participant::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($found === null) $this->notFound();
+        [$participant, $trip] = $found;
+
+        UploadService::delete($participant->avatarPath);
+        $name = $participant->nickname;
+        $participant->delete();
+
+        flash('success', 'Usunieto uczestnika "' . $name . '".');
+        $this->redirect(url('/admin/trips/' . $trip->id . '/participants'));
+    }
+
+    public function viewResponses(Request $request, array $args): never
+    {
+        $admin = (new AuthService())->currentAdmin();
+        $found = Participant::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($found === null) $this->notFound();
+        [$participant, $trip] = $found;
+        $this->redirect(url('/p/' . $participant->accessToken));
+    }
+}

@@ -1,0 +1,44 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Composer
+/vendor/
+
+# Storage (logs, runtime data)
+/storage/sent_emails.log
+/storage/rate_limits/
+
+# Uploads (user-generated)
+/public/assets/uploads/banners/*
+!/public/assets/uploads/banners/.gitkeep
+/public/assets/uploads/avatars/*
+!/public/assets/uploads/avatars/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Backups
+*.bak
+*~
+*.swp
+*.swo
+
+# Original brief (uploaded - nie wrzucamy zaufanej dokumentacji do publicznego repo)
+wyjazdownik-final-prompt.md
+
+# Database dumps
+/database/dumps/
+*.sql.gz

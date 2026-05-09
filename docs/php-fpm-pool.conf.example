@@ -1,0 +1,49 @@
+; ===========================================================================
+; Wyjazdownik.pl - PHP-FPM pool
+; ===========================================================================
+; Skopiuj do /etc/php/8.1/fpm/pool.d/wyjazdownik.conf, potem:
+;   sudo systemctl reload php8.1-fpm
+;
+; Konfiguracja zaklada ze masz inne projekty na tym samym VPSie - kazdy projekt
+; ma swoj pool, swojego usera (chroot-like izolacja w obrebie www-data).
+
+[wyjazdownik]
+
+; Process manager - 'ondemand' najekonomiczniej dla maly ruch
+pm = ondemand
+pm.max_children = 8
+pm.process_idle_timeout = 30s
+pm.max_requests = 500
+
+; User / group
+user  = www-data
+group = www-data
+
+; Socket Apache laczy sie do tego socketu (zgodne z apache-vhost.conf.example)
+listen       = /run/php/php8.1-fpm-wyjazdownik.sock
+listen.owner = www-data
+listen.group = www-data
+listen.mode  = 0660
+
+; Nie ujawniaj wersji PHP w nagłówkach
+php_admin_value[expose_php] = Off
+
+; Limity zasobow (rozsadny default dla wakacji-app)
+php_admin_value[memory_limit]       = 128M
+php_admin_value[upload_max_filesize] = 4M
+php_admin_value[post_max_size]      = 8M
+php_admin_value[max_execution_time] = 30
+
+; Sesje - zapisuj w osobnym katalogu zeby nie kolidowac z innymi projektami
+php_admin_value[session.save_path]  = /var/lib/php/sessions/wyjazdownik
+php_admin_value[session.cookie_httponly] = 1
+php_admin_value[session.cookie_secure]   = 1
+php_admin_value[session.cookie_samesite] = "Lax"
+
+; Logi bledow
+php_admin_value[error_log] = /var/log/php-fpm/wyjazdownik-error.log
+php_admin_flag[log_errors] = on
+php_admin_flag[display_errors] = off
+
+; Open_basedir - utwierdza chroot-like ze PHP nie wyjdzie poza projekt
+php_admin_value[open_basedir] = /var/www/wyjazdownik:/tmp

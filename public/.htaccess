@@ -1,0 +1,83 @@
+# Wyjazdownik.pl - public/.htaccess
+# Front-controller + security headers + assets caching + compression.
+
+# ============================================================================
+# 1. Front controller - wszystkie requesty do index.php
+# ============================================================================
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # HTTPS redirect - bezpieczny dla Cloudflare flexible/full (sprawdza X-Forwarded-Proto)
+    # Cloudflare flexible: CF→serwer przez HTTP + naglowek X-Forwarded-Proto: https
+    # Aktywny tylko gdy APP_ENV=prod i request faktycznie przyszedl po HTTP do origin
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+    RewriteCond %{ENV:APP_ENV} =prod
+    RewriteCond %{HTTP_HOST} !=localhost
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+    # Funnel everything to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# ============================================================================
+# 2. Security headers
+# ============================================================================
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-site"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
+
+    # CSP - permissive bo Tailwind CDN, Leaflet, fonts itd. Po switch'u na lokalny build mozna zaostrzyc.
+    Header always set Content-Security-Policy "default-src 'self'; script-src  'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src   'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com; font-src    'self' https://fonts.gstatic.com data:; img-src     'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https://*.tile.openstreetmap.org; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+</IfModule>
+
+# ============================================================================
+# 3. Compression - gzip
+# ============================================================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml application/xml
+</IfModule>
+
+# ============================================================================
+# 4. Caching - assets
+# ============================================================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/svg+xml          "access plus 7 days"
+    ExpiresByType image/png              "access plus 7 days"
+    ExpiresByType image/jpeg             "access plus 7 days"
+    ExpiresByType image/webp             "access plus 7 days"
+    ExpiresByType image/x-icon           "access plus 30 days"
+    ExpiresByType font/woff              "access plus 30 days"
+    ExpiresByType font/woff2             "access plus 30 days"
+    ExpiresByType text/css               "access plus 1 hours"
+    ExpiresByType application/javascript "access plus 1 hours"
+    ExpiresByType text/javascript        "access plus 1 hours"
+    ExpiresByType text/html              "access plus 0 seconds"
+</IfModule>
+
+# ============================================================================
+# 5. Hardening
+# ============================================================================
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(bak|swp|swo|orig|tmp|sql|log|md|env|env\.example)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes
+
+# APP_ENV - czytane z VirtualHost'a (SetEnv APP_ENV prod) lub z .env (APP_ENV=...).
+# NIE ustawiamy domyslnej wartosci tutaj - inaczej .htaccess override'owalby VirtualHost.

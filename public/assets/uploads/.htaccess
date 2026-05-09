@@ -1,0 +1,21 @@
+# Wyjazdownik.pl - uploads dir hardening
+# Block any kind of script execution - this dir is for static images only.
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phar|pl|py|jsp|asp|sh|cgi)$">
+    Require all denied
+</FilesMatch>
+
+# Force-disable PHP handling even if Apache decides otherwise.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Disable directory listing.
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .phar

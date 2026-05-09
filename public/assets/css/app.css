@@ -1,0 +1,139 @@
+/* Wyjazdownik.pl - global CSS overrides.
+ * Tailwind via CDN handles utilities; this file is for project-wide rules
+ * that go beyond utilities (custom focus styles, scroll animations, FAQ accordion).
+ */
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    text-rendering: optimizeLegibility;
+}
+
+/* Smooth focus ring in brand color */
+:focus-visible {
+    outline: 2px solid #FF6B35;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------
+ * [data-animate] - elementy które wjeżdżają przy scrollu.
+ * Używamy CSS @keyframes (zamiast transition), żeby NIE blokować
+ * Tailwindowego `transition` używanego przez hover na kartach.
+ * ------------------------------------------------------------------ */
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-animate] {
+    opacity: 0;
+    transform: translateY(28px);
+}
+
+[data-animate].is-visible {
+    animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Stagger przy wjeździe - delay-1..5 */
+[data-animate-delay="1"].is-visible { animation-delay: 0.10s; }
+[data-animate-delay="2"].is-visible { animation-delay: 0.20s; }
+[data-animate-delay="3"].is-visible { animation-delay: 0.30s; }
+[data-animate-delay="4"].is-visible { animation-delay: 0.40s; }
+[data-animate-delay="5"].is-visible { animation-delay: 0.50s; }
+
+/* ------------------------------------------------------------------
+ * FAQ accordion - max-height trick (100% wsparcie przeglądarek)
+ * ------------------------------------------------------------------ */
+[data-faq-panel] {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+[data-faq].is-open [data-faq-panel] {
+    max-height: 1000px;
+}
+[data-faq-trigger] svg.faq-chevron {
+    transition: transform 0.25s ease;
+}
+[data-faq].is-open [data-faq-trigger] svg.faq-chevron {
+    transform: rotate(180deg);
+}
+
+/* ------------------------------------------------------------------
+ * Reduced motion - wyłącz wszystkie animacje
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    [data-animate] {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+/* Scrollbar - delikatne dostosowanie do trybu ciemnego */
+@media (prefers-color-scheme: dark) {
+    ::-webkit-scrollbar-thumb { background-color: rgba(240, 244, 248, 0.2); }
+}
+
+/* ------------------------------------------------------------------
+ * Summary - animacje scroll dla sekcji
+ * ------------------------------------------------------------------ */
+section[data-summary-animate] {
+    opacity: 0;
+    transform: translateY(36px);
+    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+}
+section[data-summary-animate].summary-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+    section[data-summary-animate] {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+/* Tryb prezentacji - powieksz fonty na fullscreen */
+body.presentation-mode {
+    font-size: 1.15em;
+}
+body.presentation-mode #present-btn {
+    display: none;
+}
+
+/* Floating "Tryb prezentacji" button */
+.present-fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 40;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
+    background-color: #FF6B35;
+    color: #FFFFFF;
+    font-weight: 600;
+    box-shadow: 0 8px 24px -8px rgba(255, 107, 53, 0.5);
+    transition: background-color 0.15s ease, transform 0.15s ease;
+    cursor: pointer;
+    border: none;
+}
+.present-fab:hover {
+    background-color: #E55A2B;
+    transform: scale(1.05);
+}
+.present-fab::before {
+    content: "TV  ";
+    margin-right: 0.25rem;
+}
