@@ -14,8 +14,9 @@ foreach ([
     require $dir . $f;
 }
 ?>
-<footer class="text-center py-10 text-mist text-sm">
-    Wyjazdownik.pl &middot; podsumowanie &middot; <?= e(date('d.m.Y H:i')) ?>
-    <br>
-    <span class="text-xs">Wciśnij <kbd class="px-1.5 py-0.5 rounded bg-mist/15 font-mono">F</kbd> żeby uruchomić tryb prezentacji</span>
-</footer>
+<!-- Hint nad stopka -->
+<div class="text-center pt-10 pb-4 text-xs text-mist">
+    Wciśnij <kbd class="px-1.5 py-0.5 rounded bg-mist/15 font-mono">F</kbd> żeby uruchomić tryb prezentacji
+</div>
+
+<?php require BASE_PATH . '/views/partials/footer.php'; ?>

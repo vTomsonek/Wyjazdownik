@@ -35,8 +35,10 @@ $requireAdmin = static function (): void {
 // ---------------------------------------------------------------------------
 // Public routes
 // ---------------------------------------------------------------------------
-$router->get('/',         [HomeController::class, 'index']);
-$router->get('/zdrowie',  [HomeController::class, 'health']);
+$router->get('/',            [HomeController::class, 'index']);
+$router->get('/zdrowie',     [HomeController::class, 'health']);
+$router->get('/sitemap.xml', [HomeController::class, 'sitemap']);
+$router->get('/robots.txt',  [HomeController::class, 'robots']);
 
 // ---------------------------------------------------------------------------
 // Admin auth

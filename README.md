@@ -1,191 +1,146 @@
-# Wyjazdownik.pl
+<div align="center">
 
-> Ogarnij wakacje ze znajomymi raz na zawsze.
+# 🏖️ Wyjazdownik.pl
 
-Aplikacja webowa do uzgadniania wspólnych wakacji w ekipie 5–15 znajomych: każdy dostaje unikatowy link, wypełnia ankietę, a wszyscy razem oglądają podsumowanie z rekomendacjami i rankingami (np. "Kebab Master") — idealne do włączenia na telewizorze.
+**Ogarnij wakacje ze znajomymi raz na zawsze.**
+
+Polskie narzędzie do uzgadniania wspólnych wakacji w ekipie 5–15 znajomych.
+Każdy znajomy wypełnia ankietę, a wszyscy razem oglądają wspólny plan z rekomendacjami i rankingami — idealne na wieczór gdy włączacie telewizor.
+
+[**🌐 wyjazdownik.pl**](https://wyjazdownik.pl) · [Demo](#demo) · [Funkcje](#funkcje) · [Stack](#stack) · [Instalacja](#instalacja) · [Deployment](#deployment)
+
+![Wyjazdownik.pl](public/assets/img/og-image.png)
+
+</div>
 
 ---
+
+## Funkcje
+
+- 📅 **Inteligentny kalendarz** — heatmapa terminów, automatycznie znajdzie dni gdzie wszyscy mogą
+- 💰 **Wspólny budżet** — wykres słupkowy + algorytm "najsłabsze ogniwo"
+- 🗺️ **Mapa pomysłów** — Leaflet + Leaflet.draw, każdy uczestnik ma własny kolor
+- 🏆 **22 odznaki** — Kebab Master, Maszyna, Plażowicz, Górski Wilk... — algorytm przyznaje deterministycznie
+- 🎯 **Auto-rekomendacje destynacji** — na podstawie kombinacji preferencji ekipy
+- 📺 **Tryb prezentacji** — fullscreen z nawigacją klawiaturą, przygotowane pod TV
+- 🔗 **Magic link auth** — bez haseł, tylko email
+- 🌓 **Dark mode** — pełen, zapamiętany w localStorage
+- 📱 **Mobile-first** — wszystkie ekrany działają na telefonie, tablecie i TV (1920+)
+
+## Demo
+
+| Strona główna | Wizard uczestnika | Podsumowanie |
+|:-:|:-:|:-:|
+| Landing z 9 sekcjami | 12 kroków, autosave AJAX | 15 sekcji + ranking + auto-rekomendacje |
+
+Live: **[wyjazdownik.pl](https://wyjazdownik.pl)**
 
 ## Stack
 
-- **PHP 8.1+** (czysty PHP, bez frameworka, ale ze zorganizowaną strukturą — PSR-4)
-- **MySQL / MariaDB** przez PDO + prepared statements
-- **Tailwind CSS** (CDN) + **Vanilla JS** + **Alpine.js**
-- **Leaflet.js** + **Leaflet.draw** dla mapy (OpenStreetMap, bez kluczy API)
-- **Chart.js** dla wykresów
-- **PHPMailer** dla maili (driver `log` w dev, SMTP w prod)
-- **Composer** + autoloader PSR-4
+- **Backend** — PHP 8.1+, własny mikro-framework (router, PSR-4 autoloader, prosty MVC)
+- **Baza** — MySQL / MariaDB przez PDO + prepared statements
+- **Frontend** — Tailwind CSS (via CDN), Vanilla JS, Alpine-style data attributes
+- **Mapa** — Leaflet 1.7 + Leaflet.draw (OpenStreetMap, bez kluczy API)
+- **Wykresy** — inline SVG (Chart.js opcjonalnie)
+- **Email** — PHPMailer (driver `log` w dev, `smtp` w prod)
+- **Composer** — autoloader + dependencies (`phpmailer/phpmailer`, `vlucas/phpdotenv`)
 
----
-
-## Wymagania
-
-- XAMPP (Apache + MySQL + PHP 8.1+) lub równoważnik
-- Composer (opcjonalnie do ETAPU 1, **wymagany od ETAPU 3** dla PHPMailer/Dotenv)
-- Włączony `mod_rewrite` w Apache
-- Rozszerzenia PHP: `pdo_mysql`, `json`, `mbstring`, `fileinfo`
-
----
-
-## Instalacja na XAMPP (Windows)
-
-### 1. Sklonuj/skopiuj projekt do `htdocs`
-
-Projekt powinien znajdować się w katalogu `S:\xampp\htdocs\wyjazdownik` (lub odpowiedniku w Twojej instalacji XAMPP).
-
-### 2. Konfiguracja środowiska
-
-```bash
-cp .env.example .env
-```
-
-Otwórz `.env` i uzupełnij:
-
-```env
-APP_ENV=dev
-APP_URL=http://localhost/wyjazdownik/public
-
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=wyjazdownik
-DB_USER=root
-DB_PASS=
-
-ADMIN_INITIAL_EMAIL=tomasz@jiko.pl
-```
-
-> Hasło do bazy w domyślnej instalacji XAMPP jest puste (`root` bez hasła).
-
-### 3. Instalacja zależności (Composer) — opcjonalnie w ETAPIE 1
-
-```bash
-composer install
-```
-
-Jeśli nie masz Composera, ETAP 1 zadziała na fallbackowym autoloaderze. Composer będzie wymagany od ETAPU 3 dla bibliotek `phpmailer/phpmailer` i `vlucas/phpdotenv`.
-
-### 4. Utworzenie bazy + załadowanie danych testowych
-
-W panelu XAMPP uruchom Apache i MySQL, a następnie z katalogu projektu:
-
-**CLI:**
-```bash
-php install.php
-```
-
-**Przeglądarka (tylko gdy `APP_ENV=dev`):**
-```
-http://localhost/wyjazdownik/install.php
-```
-
-Skrypt:
-1. Połączy się z MySQL używając danych z `.env`
-2. Utworzy bazę `wyjazdownik` (jeśli nie istnieje)
-3. Załaduje `database/schema.sql` (10 tabel)
-4. Załaduje `database/seed.sql` (1 admin, 1 wyjazd, 4 uczestników z pełnymi odpowiedziami)
-
-Aby pominąć dane testowe: `php install.php --seed=no`
-
-### 5. Otwarcie aplikacji
-
-```
-http://localhost/wyjazdownik/public/
-```
-
-Powinieneś zobaczyć stronę startową ETAPU 1 z mascotką, statusem środowiska i bazą oraz linkami do testowania (widoczne tylko w trybie `dev`).
-
----
-
-## Struktura katalogów
+## Architektura
 
 ```
 wyjazdownik/
-├── public/                  document root (Apache wskazuje tutaj)
-│   ├── index.php            front controller
-│   ├── .htaccess            rewrite + security headers
-│   └── assets/              CSS, JS, img, uploads
-├── src/                     kod aplikacji (PSR-4: App\)
-│   ├── Core/                Router, Request, Response, Controller
-│   ├── Controllers/
-│   ├── Models/
-│   ├── Services/
-│   ├── Database/            Connection.php (PDO singleton)
-│   └── Helpers/             Csrf, Validator, QuestionLabels, functions.php
-├── views/                   szablony PHP
-├── database/                schema.sql + seed.sql
-├── config/                  config.php (czyta .env)
-├── storage/                 logi (poza document root)
-├── bootstrap.php            autoloader + .env loader
-├── install.php              instalator pierwszego uruchomienia
-├── composer.json
-├── .env.example
-└── README.md
+├── public/                  # document root (Apache wskazuje tutaj)
+│   ├── index.php            # front controller
+│   ├── .htaccess            # rewrite + security headers + CSP + caching
+│   └── assets/              # CSS, JS, img, uploads
+├── src/                     # kod aplikacji (PSR-4: App\)
+│   ├── Core/                # Router, Request, Response, Controller
+│   ├── Controllers/         # 9 kontrolerów
+│   ├── Models/              # Admin, Trip, Participant, MapPin
+│   ├── Services/            # 13 serwisów (Auth, Mailer, Ranking, Recommendation, ...)
+│   ├── Database/            # Connection.php (PDO singleton)
+│   └── Helpers/             # Csrf, QuestionLabels, QuestionFormatter, Validator
+├── views/                   # 80+ szablonów PHP (layout + partials per sekcja)
+├── database/                # schema.sql + seed.sql + migrations/
+├── config/                  # config.php (czyta .env)
+├── cron/                    # cleanup.php (cron job)
+├── docs/                    # deployment.md + Apache/PHP-FPM templates
+├── storage/                 # logi (poza document root)
+├── bootstrap.php            # autoloader + .env loader
+├── install.php              # instalator pierwszego uruchomienia
+├── deploy.sh                # rsync deployment
+└── composer.json
 ```
 
----
+## Instalacja (lokalnie, XAMPP)
 
-## Linki do testowania (po seed)
+**Wymagania**: XAMPP / Apache + PHP 8.1+ + MySQL/MariaDB + Composer + `mod_rewrite`
 
-Po uruchomieniu `install.php` (z seed):
+```bash
+git clone https://github.com/vTomsonek/Wyjazdownik.git
+cd Wyjazdownik
 
-| Co                       | URL                                                                                    |
-|--------------------------|----------------------------------------------------------------------------------------|
-| Strona główna            | `/`                                                                                    |
-| Health-check             | `/zdrowie`                                                                             |
-| Wizard - Tomek           | `/p/1111111111111111111111111111111111111111111111111111111111111111`                  |
-| Wizard - Kasia           | `/p/2222222222222222222222222222222222222222222222222222222222222222`                  |
-| Wizard - Bartek          | `/p/3333333333333333333333333333333333333333333333333333333333333333`                  |
-| Wizard - Ola             | `/p/4444444444444444444444444444444444444444444444444444444444444444`                  |
-| Podsumowanie publiczne   | `/summary/cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000`            |
-| Logowanie admina         | `/admin/login`                                                                         |
+cp .env.example .env
+nano .env   # ustaw DB_USER, DB_PASS, ADMIN_INITIAL_EMAIL
 
-> Po seed wszystkie linki działają z testowymi danymi. Bez seed (`--seed=no`) tylko strona główna i logowanie.
+composer install
 
----
+php install.php   # tworzy bazę, schema, seed (1 admin + 1 trip + 4 uczestników)
+```
 
-## Plan etapów
+Otwórz `http://localhost/wyjazdownik/public/`.
 
-Wszystkie zakończone — projekt gotowy do deploymentu na produkcję.
+Linki testowe (po seed):
+- Wizard - Tomek: `/p/1111111111111111111111111111111111111111111111111111111111111111`
+- Wizard - Kasia: `/p/2222222222222222222222222222222222222222222222222222222222222222`
+- Wizard - Bartek: `/p/3333333333333333333333333333333333333333333333333333333333333333`
+- Wizard - Ola: `/p/4444444444444444444444444444444444444444444444444444444444444444`
+- Podsumowanie publiczne: `/summary/cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000`
 
-| Etap | Zakres                                                              | Status      |
-|------|---------------------------------------------------------------------|-------------|
-| 1    | Fundament (router, DB, schema, seed, install, layout)               | ✅ gotowe   |
-| 2    | Landing page (9 sekcji, animacje, dark mode)                        | ✅ gotowe   |
-| 3    | Logowanie admina (magic link, auto-rejestracja)                     | ✅ gotowe   |
-| 4    | CRUD wyjazdów i uczestników (upload bannerów/avatarów, audit log)   | ✅ gotowe   |
-| 5    | Wizard uczestnika (12 kroków, autosave AJAX, walidacja)             | ✅ gotowe   |
-| 6    | Mapa (Leaflet + Leaflet.draw, GeoJSON, kolory uczestników)          | ✅ gotowe   |
-| 7    | Podsumowanie (15 sekcji + 22 odznaki + auto-rekomendacje + TV mode) | ✅ gotowe   |
-| 8    | Polish + deployment Ubuntu (Apache + PHP-FPM + MariaDB + certbot)   | ✅ gotowe   |
+## Deployment
 
----
+Pełna instrukcja krok-po-kroku Ubuntu + Apache + PHP-FPM + MariaDB + Cloudflare:
+**[`docs/deployment.md`](docs/deployment.md)**
 
-## Deployment Ubuntu
-
-Pełna instrukcja krok-po-kroku: [`docs/deployment.md`](docs/deployment.md).
-
-**Skrót:**
-- Apache 2.4 + PHP-FPM 8.1+ + MariaDB 10.6+
-- Document root: `/var/www/wyjazdownik/public`
-- Templates: `docs/apache-vhost.conf.example` + `docs/php-fpm-pool.conf.example`
-- Deploy z lokalnej maszyny: `./deploy.sh` (rsync + composer install + permissions)
-- HTTPS: `sudo certbot --apache -d wyjazdownik.pl`
-- Cron cleanup: `0 3 * * * php /var/www/wyjazdownik/cron/cleanup.php`
-
----
+Skrót:
+```bash
+./deploy.sh                                          # rsync + composer install + permissions
+ssh user@vps "cd /var/www/wyjazdownik && php install.php --seed=no"
+sudo certbot --apache -d twoja-domena.pl              # HTTPS (lub Cloudflare flexible SSL)
+```
 
 ## Bezpieczeństwo
 
-- Wszystkie zapytania SQL przez **PDO prepared statements**
-- **CSRF tokeny** na każdym POST (`Csrf::field()`, `Csrf::validate()`)
-- Tokeny dostępu: `bin2hex(random_bytes(32))` (64 hex)
-- Upload plików: whitelist MIME przez `finfo`, `.htaccess` blokujący PHP w `/uploads`
-- Rate limiting (login 3/15 min, submit 30/h)
-- Headers: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
-- HTTPS-only na produkcji (redirect w `.htaccess`)
-
----
+- ✅ PDO prepared statements (zero konkatenacji SQL)
+- ✅ CSRF tokens na każdym POST
+- ✅ `bin2hex(random_bytes(32))` dla wszystkich tokenów (256 bit entropii)
+- ✅ Rate limiting (3 próby logowania / 15 min / IP)
+- ✅ Upload: whitelist MIME przez `finfo`, max size, losowe nazwy plików
+- ✅ Headers: CSP, HSTS, X-Frame-Options, COOP, CORP, Permissions-Policy
+- ✅ Magic link jednorazowy (`used_at`), 15 min TTL
+- ✅ Auto-rejestracja przez magic link (atak: cudzy email → atakujący nie dostanie kodu)
+- ✅ `httpOnly` + `samesite=Lax` + `secure` cookies
+- ✅ Per-admin authorization (admin widzi tylko swoje wyjazdy)
 
 ## Licencja
 
-Projekt prywatny. Kontakt: tomasz@jiko.pl
+[**PolyForm Noncommercial 1.0.0**](LICENSE)
+
+✅ Możesz: używać, modyfikować, hostować dla siebie/ekipy/przyjaciół, kontrybuować
+❌ Nie możesz: hostować jako komercyjny serwis konkurencyjny
+
+W skrócie: **rób z tym co chcesz prywatnie**, ale nie zarabiaj na tym kopiując pomysł.
+
+## Autor
+
+[**vTomsonek**](https://github.com/vTomsonek)
+
+Pull requesty mile widziane. Zgłaszaj bugi i pomysły przez [GitHub Issues](https://github.com/vTomsonek/Wyjazdownik/issues).
+
+---
+
+<div align="center">
+
+Stworzone z miłością do dobrych wyjazdów ☀️
+
+</div>

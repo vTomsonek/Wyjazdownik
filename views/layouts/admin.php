@@ -76,8 +76,9 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
 
     <header class="sticky top-0 z-40 bg-cream/85 dark:bg-night/85 backdrop-blur border-b border-mist/15">
         <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 md:py-4">
-            <a href="<?= e(url($admin ? '/admin' : '/')) ?>"
-               class="flex items-center gap-2 text-xl sm:text-2xl 3xl:text-3xl">
+            <a href="<?= e(url('/')) ?>"
+               class="flex items-center gap-2 text-xl sm:text-2xl 3xl:text-3xl"
+               title="Wróć na stronę główną">
                 <?php require BASE_PATH . '/views/partials/logo.php'; ?>
             </a>
 
@@ -121,11 +122,7 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
         <?= $content ?>
     </main>
 
-    <footer class="border-t border-mist/15 py-6 mt-12">
-        <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 text-sm text-mist text-center">
-            Wyjazdownik.pl &middot; panel admina &middot; <?= date('Y') ?>
-        </div>
-    </footer>
+    <?php require BASE_PATH . '/views/partials/footer.php'; ?>
 
     <script src="<?= e(asset('assets/js/app.js')) ?>"></script>
 </body>

@@ -22,6 +22,15 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
     <meta property="og:title" content="<?= e($title) ?>">
     <meta property="og:description" content="<?= e($description) ?>">
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Wyjazdownik.pl">
+    <meta property="og:locale" content="pl_PL">
+    <meta property="og:image" content="<?= e(asset('assets/img/og-image.png')) ?>">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= e($title) ?>">
+    <meta name="twitter:description" content="<?= e($description) ?>">
+    <meta name="twitter:image" content="<?= e(asset('assets/img/og-image.png')) ?>">
 
     <script>
         (function () {

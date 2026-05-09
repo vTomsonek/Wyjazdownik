@@ -16,6 +16,8 @@ return [
         'url'      => env('APP_URL', 'http://localhost'),
         'timezone' => env('APP_TIMEZONE', 'Europe/Warsaw'),
         'debug'    => env('APP_ENV', 'prod') === 'dev',
+        // Wersja projektu - aktualizuj przy kazdym wiekszym release.
+        'version'  => '1.4.2',
     ],
 
     'database' => [

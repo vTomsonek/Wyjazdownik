@@ -32,6 +32,46 @@ final class HomeController extends Controller
         ]);
     }
 
+    public function sitemap(Request $request): never
+    {
+        $base  = rtrim((string) config('app.url'), '/');
+        $today = date('Y-m-d');
+        $urls  = [
+            ['loc' => $base . '/',            'priority' => '1.0', 'changefreq' => 'weekly'],
+            ['loc' => $base . '/admin/login', 'priority' => '0.3', 'changefreq' => 'yearly'],
+        ];
+        $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        foreach ($urls as $u) {
+            $xml .= "  <url>\n";
+            $xml .= '    <loc>' . e($u['loc']) . "</loc>\n";
+            $xml .= '    <lastmod>' . $today . "</lastmod>\n";
+            $xml .= '    <changefreq>' . $u['changefreq'] . "</changefreq>\n";
+            $xml .= '    <priority>' . $u['priority'] . "</priority>\n";
+            $xml .= "  </url>\n";
+        }
+        $xml .= "</urlset>\n";
+        header('Content-Type: application/xml; charset=UTF-8');
+        echo $xml;
+        exit;
+    }
+
+    public function robots(Request $request): never
+    {
+        $base = rtrim((string) config('app.url'), '/');
+        $txt  = "User-agent: *\n";
+        $txt .= "Disallow: /admin/\n";
+        $txt .= "Disallow: /p/\n";
+        $txt .= "Disallow: /summary/\n";
+        $txt .= "Disallow: /zdrowie\n";
+        $txt .= "Allow: /\n";
+        $txt .= "Allow: /admin/login\n\n";
+        $txt .= "Sitemap: " . $base . "/sitemap.xml\n";
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo $txt;
+        exit;
+    }
+
     private function buildDevData(): array
     {
         return [

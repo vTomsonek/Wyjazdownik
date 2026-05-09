@@ -10,7 +10,7 @@
  */
 $title       = $title       ?? 'Wyjazdownik.pl - ogarnij wakacje ze znajomymi raz na zawsze';
 $description = $description ?? 'Polskie narzędzie do uzgadniania wspólnych wakacji w ekipie. Każdy znajomy wypełnia ankietę, a wy wszyscy oglądacie wspólny plan z rekomendacjami i rankingami.';
-$ogImage     = $ogImage     ?? asset('assets/img/og-image.svg');
+$ogImage     = $ogImage     ?? asset('assets/img/og-image.png');
 $bodyClass   = $bodyClass   ?? '';
 $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
 ?><!DOCTYPE html>
