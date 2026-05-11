@@ -61,14 +61,16 @@ $router->post('/admin/trips/{id:int}/edit',       [AdminTripsController::class, 
 $router->post('/admin/trips/{id:int}/delete',     [AdminTripsController::class, 'deleteTrip'],  [$requireAdmin]);
 
 // Admin - uczestnicy danego wyjazdu
-$router->get ('/admin/trips/{id:int}/participants', [AdminParticipantsController::class, 'listParticipants'],  [$requireAdmin]);
-$router->post('/admin/trips/{id:int}/participants', [AdminParticipantsController::class, 'createParticipant'], [$requireAdmin]);
+$router->get ('/admin/trips/{id:int}/participants',         [AdminParticipantsController::class, 'listParticipants'],    [$requireAdmin]);
+$router->post('/admin/trips/{id:int}/participants',         [AdminParticipantsController::class, 'createParticipant'],   [$requireAdmin]);
+$router->post('/admin/trips/{id:int}/participants/reorder', [AdminParticipantsController::class, 'reorderParticipants'], [$requireAdmin]);
 
 // Admin - operacje na konkretnym uczestniku
 $router->get ('/admin/participants/{id:int}/edit',      [AdminParticipantsController::class, 'editParticipant'],   [$requireAdmin]);
 $router->post('/admin/participants/{id:int}/edit',      [AdminParticipantsController::class, 'updateParticipant'], [$requireAdmin]);
-$router->post('/admin/participants/{id:int}/delete',    [AdminParticipantsController::class, 'deleteParticipant'], [$requireAdmin]);
-$router->get ('/admin/participants/{id:int}/responses', [AdminParticipantsController::class, 'viewResponses'],     [$requireAdmin]);
+$router->post('/admin/participants/{id:int}/delete',        [AdminParticipantsController::class, 'deleteParticipant'],        [$requireAdmin]);
+$router->post('/admin/participants/{id:int}/toggle-hidden', [AdminParticipantsController::class, 'toggleHiddenParticipant'], [$requireAdmin]);
+$router->get ('/admin/participants/{id:int}/responses',     [AdminParticipantsController::class, 'viewResponses'],            [$requireAdmin]);
 
 // ---------------------------------------------------------------------------
 // Wizard uczestnika

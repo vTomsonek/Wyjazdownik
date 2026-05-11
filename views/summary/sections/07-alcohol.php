@@ -6,7 +6,7 @@
 use App\Helpers\QuestionLabels;
 
 $count = $agg->completedCount();
-$responses = $agg->allResponses();
+$responses = $agg->completedResponses();
 
 // Rozklad alcohol_attitude
 $alcOpts  = QuestionLabels::get('alcohol_attitude')['options']  ?? [];

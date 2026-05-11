@@ -108,6 +108,8 @@ CREATE TABLE `participants` (
     `nickname`         VARCHAR(60) NOT NULL,
     `avatar_path`      VARCHAR(255) NULL DEFAULT NULL,
     `color`            VARCHAR(20) NULL DEFAULT NULL,
+    `hidden`           TINYINT(1) NOT NULL DEFAULT 0,
+    `sort_order`       INT NOT NULL DEFAULT 0,
     `access_token`     CHAR(64) NOT NULL,
     `completed_at`     TIMESTAMP NULL DEFAULT NULL,
     `last_activity_at` TIMESTAMP NULL DEFAULT NULL,
@@ -116,6 +118,7 @@ CREATE TABLE `participants` (
     UNIQUE KEY `uniq_participants_token` (`access_token`),
     KEY `idx_participants_trip` (`trip_id`),
     KEY `idx_participants_completed` (`completed_at`),
+    KEY `idx_participants_sort` (`trip_id`, `sort_order`),
     CONSTRAINT `fk_participants_trip`
         FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`)
         ON DELETE CASCADE ON UPDATE CASCADE

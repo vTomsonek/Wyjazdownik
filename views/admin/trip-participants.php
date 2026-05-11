@@ -11,6 +11,9 @@
  */
 use App\Helpers\Csrf;
 
+$csrfToken = Csrf::token();
+$reorderUrl = url('/admin/trips/' . $trip->id . '/participants/reorder');
+
 $participants = $participants ?? [];
 $errors       = $errors       ?? [];
 $old          = $old          ?? [];
@@ -102,20 +105,37 @@ $summaryUrl = url('/summary/' . $trip->summaryPublicToken);
             <p class="text-mist">Jeszcze nikt - dodaj pierwszego uczestnika powyżej.</p>
         </div>
     <?php else: ?>
-        <div class="space-y-3">
+        <p class="mb-3 text-xs text-mist flex items-center gap-2">
+            <span class="text-base">⠿</span>
+            Przeciągnij za uchwyt po lewej żeby zmienić kolejność uczestników.
+            <span id="reorder-status" class="ml-auto text-secondary font-medium hidden">✓ Zapisano kolejność</span>
+        </p>
+        <div class="space-y-3" id="participants-sortable" data-reorder-url="<?= e($reorderUrl) ?>" data-csrf="<?= e($csrfToken) ?>">
             <?php foreach ($participants as $p):
                 $accessLink = url('/p/' . $p->accessToken);
                 $isCompleted = $p->isCompleted();
                 $linkId = 'link-' . $p->id;
             ?>
-            <article id="participant-<?= e($p->id) ?>" class="rounded-2xl bg-paper dark:bg-deep border border-mist/15 p-4 md:p-5">
+            <article id="participant-<?= e($p->id) ?>"
+                     data-participant-id="<?= e($p->id) ?>"
+                     class="rounded-2xl bg-paper dark:bg-deep border <?= $p->hidden ? 'border-amber-300 dark:border-amber-700/50' : 'border-mist/15' ?> p-4 md:p-5 <?= $p->hidden ? 'opacity-60' : '' ?>">
                 <div class="flex flex-col md:flex-row md:items-center gap-4">
+                    <!-- Drag handle -->
+                    <button type="button"
+                            class="drag-handle shrink-0 px-2 py-1 -ml-1 rounded-lg text-mist hover:text-primary hover:bg-mist/10 cursor-grab active:cursor-grabbing transition select-none touch-none"
+                            title="Przeciągnij żeby zmienić kolejność"
+                            aria-label="Uchwyt do przeciągania">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/>
+                            <circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+                        </svg>
+                    </button>
                     <!-- Avatar -->
                     <div class="shrink-0">
                         <?php if ($p->avatarPath): ?>
-                            <img src="<?= e(asset($p->avatarPath)) ?>" alt="" class="w-12 h-12 rounded-full object-cover border-2 border-mist/15">
+                            <img src="<?= e(asset($p->avatarPath)) ?>" alt="" class="w-12 h-12 rounded-full object-cover border-2 <?= $p->hidden ? 'border-amber-400 grayscale' : 'border-mist/15' ?>">
                         <?php else: ?>
-                            <div class="w-12 h-12 rounded-full bg-primary/15 text-primary font-bold flex items-center justify-center text-lg">
+                            <div class="w-12 h-12 rounded-full <?= $p->hidden ? 'bg-amber-500/15 text-amber-600' : 'bg-primary/15 text-primary' ?> font-bold flex items-center justify-center text-lg">
                                 <?= e(mb_strtoupper(mb_substr($p->nickname, 0, 1))) ?>
                             </div>
                         <?php endif; ?>
@@ -125,6 +145,12 @@ $summaryUrl = url('/summary/' . $trip->summaryPublicToken);
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <h3 class="font-display font-bold text-lg text-ink dark:text-pale"><?= e($p->nickname) ?></h3>
+                            <?php if ($p->hidden): ?>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-400/20 text-amber-700 dark:text-amber-300"
+                                      title="Nie pokazuje się w podsumowaniu - dane zachowane">
+                                    🙈 ukryty w podsumowaniu
+                                </span>
+                            <?php endif; ?>
                             <?php if ($isCompleted): ?>
                                 <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/15 text-secondary">✓ wypełnione</span>
                             <?php else: ?>
@@ -153,6 +179,23 @@ $summaryUrl = url('/summary/' . $trip->summaryPublicToken);
                            class="px-3 py-2 rounded-full bg-mist/15 text-ink dark:text-pale text-sm font-medium hover:bg-primary/15 transition">
                             Edytuj
                         </a>
+                        <!-- Toggle hidden - ukryj/przywróć w podsumowaniu -->
+                        <form method="POST" action="<?= e(url('/admin/participants/' . $p->id . '/toggle-hidden')) ?>">
+                            <?= Csrf::field() ?>
+                            <?php if ($p->hidden): ?>
+                                <button type="submit"
+                                        class="px-3 py-2 rounded-full bg-secondary/15 text-secondary text-sm font-medium hover:bg-secondary/25 transition"
+                                        title="Pokaż uczestnika w podsumowaniu">
+                                    👁 Przywróć
+                                </button>
+                            <?php else: ?>
+                                <button type="submit"
+                                        class="px-3 py-2 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-950/70 transition"
+                                        title="Ukryj w podsumowaniu (dane zachowane, można przywrócić)">
+                                    🙈 Ukryj
+                                </button>
+                            <?php endif; ?>
+                        </form>
                         <form method="POST" action="<?= e(url('/admin/participants/' . $p->id . '/delete')) ?>"
                               onsubmit="return confirm('Usunąć uczestnika \'<?= e($p->nickname) ?>\' wraz z odpowiedziami?');">
                             <?= Csrf::field() ?>
@@ -184,4 +227,57 @@ function copyToClipboard(elementId, btn) {
         }, 1500);
     });
 }
+</script>
+
+<!-- Drag & drop kolejnosci uczestnikow -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+(function () {
+    const list = document.getElementById('participants-sortable');
+    if (!list || typeof Sortable === 'undefined') return;
+
+    const reorderUrl = list.getAttribute('data-reorder-url');
+    const csrfToken  = list.getAttribute('data-csrf');
+    const status     = document.getElementById('reorder-status');
+
+    const showStatus = (text, ok) => {
+        if (!status) return;
+        status.textContent = text;
+        status.classList.remove('hidden', 'text-secondary', 'text-red-500');
+        status.classList.add(ok ? 'text-secondary' : 'text-red-500');
+        clearTimeout(showStatus._t);
+        showStatus._t = setTimeout(() => status.classList.add('hidden'), 2500);
+    };
+
+    new Sortable(list, {
+        handle: '.drag-handle',
+        animation: 180,
+        ghostClass: 'opacity-30',
+        chosenClass: 'ring-2',
+        dragClass: 'shadow-pop',
+        onEnd: () => {
+            const order = Array.from(list.querySelectorAll('article[data-participant-id]'))
+                .map(el => parseInt(el.getAttribute('data-participant-id'), 10))
+                .filter(n => !isNaN(n));
+
+            fetch(reorderUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
+                body: JSON.stringify({ order }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.ok) {
+                    showStatus('✓ Zapisano kolejność', true);
+                } else {
+                    showStatus('⚠️ Błąd zapisu', false);
+                }
+            })
+            .catch(() => showStatus('⚠️ Błąd sieci', false));
+        },
+    });
+})();
 </script>

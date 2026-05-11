@@ -6,7 +6,7 @@
 use App\Helpers\QuestionLabels;
 
 $count = $agg->completedCount();
-$responses = $agg->allResponses();
+$responses = $agg->completedResponses();
 
 // Trip expectations (multi, max 3)
 $expectOpts = QuestionLabels::get('trip_expectations')['options'] ?? [];

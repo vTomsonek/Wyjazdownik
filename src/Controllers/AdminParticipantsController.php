@@ -158,6 +158,64 @@ final class AdminParticipantsController extends Controller
         $this->redirect(url('/admin/trips/' . $trip->id . '/participants'));
     }
 
+    /**
+     * Zapisuje nowa kolejnosc uczestnikow (drag & drop). AJAX endpoint - JSON in/out.
+     * Body: { "order": [12, 5, 8, ...] } - lista ID w docelowej kolejnosci.
+     */
+    public function reorderParticipants(Request $request, array $args): never
+    {
+        Csrf::validate();
+        $admin = (new AuthService())->currentAdmin();
+        $trip = Trip::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($trip === null) $this->notFound();
+
+        $payload = json_decode((string) file_get_contents('php://input'), true);
+        $order = $payload['order'] ?? null;
+
+        if (!is_array($order) || empty($order)) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'error' => 'Brak listy ID']);
+            exit;
+        }
+
+        // Walidacja - wszystkie ID musza nalezec do tego tripu
+        $validIds = array_map(static fn($p) => $p->id, Participant::listForTrip($trip->id));
+        $cleanOrder = [];
+        foreach ($order as $id) {
+            $intId = (int) $id;
+            if (in_array($intId, $validIds, true)) {
+                $cleanOrder[] = $intId;
+            }
+        }
+
+        Participant::reorderForTrip($trip->id, $cleanOrder);
+
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => true, 'count' => count($cleanOrder)]);
+        exit;
+    }
+
+    /**
+     * Toggle ukrywania uczestnika w podsumowaniu. Dane zostaja w bazie -
+     * mozna przywrocic. Uzyteczne np. zeby zobaczyc plan bez konkretnej osoby.
+     */
+    public function toggleHiddenParticipant(Request $request, array $args): never
+    {
+        Csrf::validate();
+        $admin = (new AuthService())->currentAdmin();
+        $found = Participant::findByIdForAdmin((int) $args['id'], $admin->id);
+        if ($found === null) $this->notFound();
+        [$participant, $trip] = $found;
+
+        $nowHidden = $participant->toggleHidden();
+
+        flash('success', $nowHidden
+            ? 'Ukryto "' . $participant->nickname . '" w podsumowaniu (dane zachowane, mozna przywrocic).'
+            : 'Przywrocono "' . $participant->nickname . '" w podsumowaniu.');
+        $this->redirect(url('/admin/trips/' . $trip->id . '/participants') . '#participant-' . $participant->id);
+    }
+
     public function viewResponses(Request $request, array $args): never
     {
         $admin = (new AuthService())->currentAdmin();

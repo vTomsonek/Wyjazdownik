@@ -6,7 +6,7 @@
 use App\Helpers\QuestionLabels;
 
 $count = $agg->completedCount();
-$responses = $agg->allResponses();
+$responses = $agg->completedResponses();
 
 $climOpts = QuestionLabels::get('climate_tolerance')['options'] ?? [];
 $climOrder = ['hot_30plus', 'warm_20_30', 'mild_10_20', 'cool_under_10', 'cold_winter'];

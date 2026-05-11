@@ -18,6 +18,8 @@ final class Participant
         public readonly ?string $lastActivityAt,
         public readonly string $createdAt,
         public readonly ?string $color = null,
+        public readonly bool $hidden = false,
+        public readonly int $sortOrder = 0,
     ) {}
 
     public static function findById(int $id): ?self
@@ -49,11 +51,56 @@ final class Participant
 
     public static function listForTrip(int $tripId): array
     {
-        $stmt = Connection::get()->prepare('SELECT * FROM participants WHERE trip_id = :tid ORDER BY created_at ASC');
+        $stmt = Connection::get()->prepare(
+            'SELECT * FROM participants WHERE trip_id = :tid
+             ORDER BY sort_order ASC, created_at ASC'
+        );
         $stmt->execute(['tid' => $tripId]);
         $out = [];
         foreach ($stmt->fetchAll() as $row) $out[] = self::fromRow($row);
         return $out;
+    }
+
+    /**
+     * Tylko widoczni uczestnicy (hidden = 0). Uzywane na stronie podsumowania.
+     */
+    public static function listVisibleForTrip(int $tripId): array
+    {
+        $stmt = Connection::get()->prepare(
+            'SELECT * FROM participants WHERE trip_id = :tid AND hidden = 0
+             ORDER BY sort_order ASC, created_at ASC'
+        );
+        $stmt->execute(['tid' => $tripId]);
+        $out = [];
+        foreach ($stmt->fetchAll() as $row) $out[] = self::fromRow($row);
+        return $out;
+    }
+
+    /**
+     * Zapisuje nowa kolejnosc uczestnikow dla danego tripu.
+     * Przyjmuje liste ID w docelowej kolejnosci - kazde dostanie sort_order = pozycja.
+     * Idempotentne i transakcyjne.
+     * @param list<int> $orderedIds
+     */
+    public static function reorderForTrip(int $tripId, array $orderedIds): void
+    {
+        if (empty($orderedIds)) return;
+        $pdo = Connection::get();
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare(
+                'UPDATE participants SET sort_order = :pos
+                 WHERE id = :id AND trip_id = :tid'
+            );
+            $pos = 0;
+            foreach ($orderedIds as $id) {
+                $stmt->execute(['pos' => $pos++, 'id' => (int) $id, 'tid' => $tripId]);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 
     public static function create(array $data): self
@@ -93,6 +140,18 @@ final class Participant
         Connection::get()->prepare('DELETE FROM participants WHERE id = :id')->execute(['id' => $this->id]);
     }
 
+    /**
+     * Toggle pomiedzy hidden=1 i hidden=0. Zwraca nowy stan.
+     */
+    public function toggleHidden(): bool
+    {
+        $newState = !$this->hidden;
+        Connection::get()
+            ->prepare('UPDATE participants SET hidden = :h WHERE id = :id')
+            ->execute(['h' => $newState ? 1 : 0, 'id' => $this->id]);
+        return $newState;
+    }
+
     public function isCompleted(): bool { return $this->completedAt !== null; }
 
     public function unavailableDatesCount(): int
@@ -121,6 +180,8 @@ final class Participant
             lastActivityAt: $row['last_activity_at'] !== null ? (string) $row['last_activity_at'] : null,
             createdAt:      (string) $row['created_at'],
             color:          isset($row['color']) && $row['color'] !== null ? (string) $row['color'] : null,
+            hidden:         isset($row['hidden']) ? (bool) (int) $row['hidden'] : false,
+            sortOrder:      isset($row['sort_order']) ? (int) $row['sort_order'] : 0,
         );
     }
 }

@@ -6,7 +6,7 @@
 use App\Helpers\QuestionLabels;
 
 $count = $agg->completedCount();
-$responses = $agg->allResponses();
+$responses = $agg->completedResponses();
 
 // Helper: zlicz multi-choice
 $countMulti = static function (array $responses, string $key): array {

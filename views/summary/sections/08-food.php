@@ -7,7 +7,7 @@ use App\Helpers\QuestionLabels;
 
 $count = $agg->completedCount();
 $participants = $agg->participants();
-$responses = $agg->allResponses();
+$responses = $agg->completedResponses();
 $anonymous = $agg->isAnonymous();
 
 // Dietetyki - zlicz multi

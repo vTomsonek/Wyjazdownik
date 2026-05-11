@@ -38,7 +38,9 @@ final class SummaryAggregator
     public function participants(): array
     {
         if ($this->participants !== null) return $this->participants;
-        return $this->participants = Participant::listForTrip($this->trip->id);
+        // Tylko widoczni uczestnicy - admin moze ukryc osobe ktora nie pojedzie,
+        // zeby zobaczyc plan bez niej (dane zachowane, mozna przywrocic).
+        return $this->participants = Participant::listVisibleForTrip($this->trip->id);
     }
 
     /**
@@ -62,6 +64,7 @@ final class SummaryAggregator
 
     /**
      * Mapa: participant_id => responses (asoc-array klucz => wartosc).
+     * Wszyscy widoczni uczestnicy (rowniez ci ktorzy nie ukonczyli ankiety).
      * @return array<int, array<string, mixed>>
      */
     public function allResponses(): array
@@ -72,6 +75,22 @@ final class SummaryAggregator
             $out[$p->id] = ParticipantData::getResponses($p);
         }
         return $this->responsesCache = $out;
+    }
+
+    /**
+     * Mapa: participant_id => responses, TYLKO od uczestnikow ktorzy ukonczyli ankiete.
+     * Uzywac tam gdzie liczymy statystyki vs completedCount() - inaczej votes
+     * moga przekroczyc liczbe respondentow.
+     * @return array<int, array<string, mixed>>
+     */
+    public function completedResponses(): array
+    {
+        $all = $this->allResponses();
+        $out = [];
+        foreach ($this->completedParticipants() as $p) {
+            $out[$p->id] = $all[$p->id] ?? [];
+        }
+        return $out;
     }
 
     /**
@@ -123,7 +142,11 @@ final class SummaryAggregator
     public function mapPins(): array
     {
         if ($this->pinsCache !== null) return $this->pinsCache;
-        return $this->pinsCache = MapPin::listForTrip($this->trip->id);
+        // Filtrujemy pinezki ukrytych uczestnikow - participants() juz zwraca tylko widocznych.
+        $visibleIds = array_flip(array_map(static fn($p) => $p->id, $this->participants()));
+        $pins = MapPin::listForTrip($this->trip->id);
+        $filtered = array_values(array_filter($pins, static fn($pin) => isset($visibleIds[$pin->participantId])));
+        return $this->pinsCache = $filtered;
     }
 
     /**

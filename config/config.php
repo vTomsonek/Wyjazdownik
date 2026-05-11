@@ -60,4 +60,11 @@ return [
         'avatar_dir'    => 'avatars',
     ],
 
+    // Linki do social mediow - puste pole = ikonka sie nie pokazuje.
+    'social' => [
+        'facebook'  => trim((string) env('SOCIAL_FACEBOOK', '')),
+        'instagram' => trim((string) env('SOCIAL_INSTAGRAM', '')),
+        'tiktok'    => trim((string) env('SOCIAL_TIKTOK', '')),
+    ],
+
 ];

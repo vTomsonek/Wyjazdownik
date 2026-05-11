@@ -6,7 +6,7 @@
 use App\Helpers\QuestionLabels;
 
 $count = $agg->completedCount();
-$responses = $agg->allResponses();
+$responses = $agg->completedResponses();
 
 // Zlicz transport_modes
 $transportOpts = QuestionLabels::get('transport_modes')['options'] ?? [];
@@ -72,13 +72,14 @@ foreach ($responses as $resp) {
                         if ($votes === 0) continue;
                         $label = $transportOpts[$key] ?? $key;
                         $pct = $count > 0 ? (int) round($votes / $count * 100) : 0;
-                        $isFull = $votes === $count;
+                        $pctClamped = max(15, min(100, $pct)); // defensywnie - nigdy ponad 100%
+                        $isFull = $votes >= $count && $count > 0;
                     ?>
                     <div class="flex items-center gap-3 text-sm md:text-base">
                         <span class="w-32 md:w-40 shrink-0 text-ink dark:text-pale"><?= e($label) ?></span>
                         <div class="flex-1 h-7 md:h-8 bg-mist/15 rounded-full overflow-hidden">
                             <div class="h-full rounded-full flex items-center justify-end px-3 font-mono text-xs md:text-sm <?= $isFull ? 'bg-secondary text-white' : 'bg-primary text-white' ?>"
-                                 style="width: <?= max(15, $pct) ?>%">
+                                 style="width: <?= $pctClamped ?>%">
                                 <?= $votes ?>/<?= $count ?>
                             </div>
                         </div>
