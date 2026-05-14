@@ -1,0 +1,7 @@
+/*
+ * Wyjazdownik.pl - Tailwind source.
+ * Build: npm run build:css → public/assets/css/tailwind.css
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

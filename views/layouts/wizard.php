@@ -44,39 +44,32 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
         })();
     </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary:   { DEFAULT: '#FF6B35', dark: '#E55A2B' },
-                        secondary: '#2EC4B6',
-                        accent:    '#FFD23F',
-                        cream:     '#FFF8F0',
-                        paper:     '#FFFFFF',
-                        ink:       '#1A1A2E',
-                        mist:      '#6B7280',
-                        night:     '#0F1419',
-                        deep:      '#1A2332',
-                        pale:      '#F0F4F8',
-                    },
-                    fontFamily: {
-                        display: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'],
-                        body:    ['Inter', 'system-ui', 'sans-serif'],
-                        accent:  ['Caveat', 'cursive'],
-                    },
-                    screens: { '3xl': '1920px', '4xl': '2560px' },
-                    boxShadow: { 'pop': '0 8px 24px -8px rgba(255, 107, 53, 0.35)' },
-                },
-            },
-        };
-    </script>
+    <!-- Critical CSS inline + Tailwind async -->
+    <style>
+        *,::before,::after{box-sizing:border-box;border:0 solid #e5e7eb}
+        html{line-height:1.5;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
+        body{margin:0;min-height:100vh;display:flex;flex-direction:column;
+             font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+             background:#FFF8F0;color:#1A1A2E}
+        html.dark body{background:#0F1419;color:#F0F4F8}
+        main{flex:1 1 0%}
+        h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;margin:0}
+        img,svg{display:block;max-width:100%;height:auto}
+    </style>
+    <link rel="preload" as="style" href="<?= e(asset('assets/css/tailwind.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/tailwind.css')) ?>" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="<?= e(asset('assets/css/tailwind.css')) ?>"></noscript>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@400..700&family=Inter:wght@400..700&display=swap">
+    <link rel="preload" as="style"
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
+    <link rel="stylesheet" media="print" onload="this.media='all'"
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
+    <noscript>
+        <link rel="stylesheet"
+              href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
+    </noscript>
 
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
     <link rel="icon" type="image/svg+xml" href="<?= e(asset('assets/img/favicon.svg')) ?>">
@@ -110,5 +103,32 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
 
     <script src="<?= e(asset('assets/js/app.js')) ?>"></script>
     <script src="<?= e(asset('assets/js/wizard.js')) ?>"></script>
+
+    <!-- Twemoji - asynchronicznie, parse po idle -->
+    <style>
+        img.emoji { height: 1em; width: 1em; margin: 0 .05em 0 .1em; vertical-align: -0.1em; display: inline-block; }
+    </style>
+    <script>
+        (function () {
+            const run = () => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js';
+                s.crossOrigin = 'anonymous';
+                s.async = true;
+                s.onload = () => window.twemoji && twemoji.parse(document.body, {
+                    folder: 'svg', ext: '.svg',
+                    base: 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/'
+                });
+                document.head.appendChild(s);
+            };
+            if (document.readyState === 'complete') {
+                ('requestIdleCallback' in window) ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 1);
+            } else {
+                window.addEventListener('load', () => {
+                    ('requestIdleCallback' in window) ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 1);
+                }, { once: true });
+            }
+        })();
+    </script>
 </body>
 </html>

@@ -49,7 +49,15 @@ final class AdminAuthController extends Controller
             $this->redirect(url('/admin/login'));
         }
 
-        (new AuthService())->sendMagicLink($email, MailerService::fromConfig());
+        try {
+            (new AuthService())->sendMagicLink($email, MailerService::fromConfig());
+        } catch (\Throwable $e) {
+            // Loguj ale nie crashuj aplikacji - user dostaje przyjazny komunikat
+            error_log('[wyjazdownik] Magic link send failed: ' . $e->getMessage());
+            flash('error', 'Nie udało się wysłać maila. Sprawdź konfigurację SMTP lub skontaktuj się z administratorem.');
+            flash('email', $email);
+            $this->redirect(url('/admin/login'));
+        }
 
         flash('success', 'Wysłaliśmy do ciebie link do zalogowania. Sprawdź skrzynkę.');
         $this->redirect(url('/admin/login'));

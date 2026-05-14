@@ -1,0 +1,13 @@
+{
+  "name": "wyjazdownik",
+  "version": "1.5.0",
+  "private": true,
+  "description": "Wyjazdownik.pl - build narzedzia (Tailwind production)",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/css/tailwind.css -o ./public/assets/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./src/css/tailwind.css -o ./public/assets/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

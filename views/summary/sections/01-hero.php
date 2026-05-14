@@ -29,7 +29,8 @@ if ($trip->bannerImage) {
     <?php if ($bannerAspect !== null): ?>style="aspect-ratio: <?= number_format($bannerAspect, 4, '.', '') ?>;"<?php endif; ?>>
     <?php if ($trip->bannerImage): ?>
         <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
-             class="absolute inset-0 w-full h-full object-cover object-center opacity-40 dark:opacity-30" loading="lazy">
+             class="absolute inset-0 w-full h-full object-cover object-center opacity-40 dark:opacity-30"
+             fetchpriority="high" decoding="async">
     <?php endif; ?>
     <div class="absolute inset-0 -z-10 bg-gradient-to-br from-cream via-cream to-accent/20 dark:from-night dark:via-night dark:to-secondary/10"></div>
 

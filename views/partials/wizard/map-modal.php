@@ -23,7 +23,7 @@
                 Anuluj
             </button>
             <button type="button" data-modal-save
-                    class="px-6 py-2.5 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark transition">
+                    class="px-6 py-2.5 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary transition">
                 Zapisz
             </button>
         </div>

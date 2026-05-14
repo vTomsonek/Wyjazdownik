@@ -73,7 +73,7 @@ $accessToken = $participant->accessToken;
 
         <?php if ($currentStep < $totalSteps): ?>
             <a href="<?= e(url('/p/' . $accessToken . '/wizard/' . $nextStep)) ?>"
-               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-pop">
+               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary transition shadow-pop">
                 Dalej →
             </a>
         <?php else: ?>

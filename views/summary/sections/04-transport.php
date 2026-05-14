@@ -78,7 +78,7 @@ foreach ($responses as $resp) {
                     <div class="flex items-center gap-3 text-sm md:text-base">
                         <span class="w-32 md:w-40 shrink-0 text-ink dark:text-pale"><?= e($label) ?></span>
                         <div class="flex-1 h-7 md:h-8 bg-mist/15 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full flex items-center justify-end px-3 font-mono text-xs md:text-sm <?= $isFull ? 'bg-secondary text-white' : 'bg-primary text-white' ?>"
+                            <div class="h-full rounded-full flex items-center justify-end px-3 font-mono text-xs md:text-sm <?= $isFull ? 'bg-secondary text-white' : 'bg-primary-deep text-white' ?>"
                                  style="width: <?= $pctClamped ?>%">
                                 <?= $votes ?>/<?= $count ?>
                             </div>

@@ -15,7 +15,7 @@
         <div class="grid lg:grid-cols-3 gap-8 lg:gap-10">
 
             <div class="relative" data-animate data-animate-delay="1">
-                <div class="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-primary text-white font-display font-bold text-2xl flex items-center justify-center shadow-pop z-10">1</div>
+                <div class="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-primary-deep text-white font-display font-bold text-2xl flex items-center justify-center shadow-pop z-10">1</div>
                 <div class="rounded-3xl bg-paper dark:bg-deep border border-mist/10 p-6 hover:shadow-pop-lg transition h-full flex flex-col gap-5">
                     <div class="rounded-2xl bg-cream dark:bg-night p-4 border border-mist/10">
                         <?php require BASE_PATH . '/views/partials/landing/step1-mockup.php'; ?>
@@ -31,7 +31,7 @@
             </div>
 
             <div class="relative" data-animate data-animate-delay="2">
-                <div class="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-primary text-white font-display font-bold text-2xl flex items-center justify-center shadow-pop z-10">2</div>
+                <div class="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-primary-deep text-white font-display font-bold text-2xl flex items-center justify-center shadow-pop z-10">2</div>
                 <div class="rounded-3xl bg-paper dark:bg-deep border border-mist/10 p-6 hover:shadow-pop-lg transition h-full flex flex-col gap-5">
                     <div class="rounded-2xl bg-cream dark:bg-night p-4 border border-mist/10">
                         <?php require BASE_PATH . '/views/partials/landing/step2-mockup.php'; ?>
@@ -47,7 +47,7 @@
             </div>
 
             <div class="relative" data-animate data-animate-delay="3">
-                <div class="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-primary text-white font-display font-bold text-2xl flex items-center justify-center shadow-pop z-10">3</div>
+                <div class="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-primary-deep text-white font-display font-bold text-2xl flex items-center justify-center shadow-pop z-10">3</div>
                 <div class="rounded-3xl bg-paper dark:bg-deep border border-mist/10 p-6 hover:shadow-pop-lg transition h-full flex flex-col gap-5">
                     <div class="rounded-2xl bg-cream dark:bg-night p-4 border border-mist/10">
                         <?php require BASE_PATH . '/views/partials/landing/step3-mockup.php'; ?>

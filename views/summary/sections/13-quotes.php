@@ -92,7 +92,7 @@ foreach ($participants as $i => $p) {
                     </p>
                     <footer class="flex items-center gap-3 pt-3 border-t border-mist/10">
                         <?php if ($plan['avatar']): ?>
-                            <img src="<?= e(asset($plan['avatar'])) ?>" alt="" class="w-10 h-10 rounded-full object-cover border-2" style="border-color: <?= e($plan['color']) ?>">
+                            <img src="<?= e(asset($plan['avatar'])) ?>" alt="" class="w-10 h-10 rounded-full object-cover border-2" style="border-color: <?= e($plan['color']) ?>" loading="lazy" decoding="async">
                         <?php else: ?>
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: <?= e($plan['color']) ?>">
                                 <?= e(mb_strtoupper(mb_substr($plan['name'], 0, 1))) ?>
@@ -119,7 +119,8 @@ foreach ($participants as $i => $p) {
                         <?php if ($b['avatar']): ?>
                             <img src="<?= e(asset($b['avatar'])) ?>" alt=""
                                  class="w-10 h-10 rounded-full object-cover border-2 shrink-0"
-                                 style="border-color: <?= e($b['color']) ?>">
+                                 style="border-color: <?= e($b['color']) ?>"
+                                 loading="lazy" decoding="async">
                         <?php else: ?>
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0"
                                  style="background: <?= e($b['color']) ?>">

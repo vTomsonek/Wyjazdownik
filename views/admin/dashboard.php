@@ -32,7 +32,7 @@ $flashError   = $flashError   ?? null;
             <p class="mt-1 text-mist">Cześć, <?= e($admin->name) ?>. Zarządzaj swoimi wyjazdami w jednym miejscu.</p>
         </div>
         <a href="<?= e(url('/admin/trips/new')) ?>"
-           class="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark hover:scale-105 transition shadow-pop self-start">
+           class="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-105 transition shadow-pop self-start">
             +&nbsp;Nowy wyjazd
         </a>
     </div>

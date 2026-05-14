@@ -166,7 +166,7 @@ $action = $isEdit ? url('/admin/trips/' . $trip->id . '/edit') : url('/admin/tri
         <!-- Submit -->
         <div class="flex flex-wrap gap-3 pt-4 border-t border-mist/15">
             <button type="submit"
-                    class="px-6 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark hover:scale-[1.01] transition shadow-pop">
+                    class="px-6 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-[1.01] transition shadow-pop">
                 <?= $isEdit ? 'Zapisz zmiany' : 'Utwórz wyjazd' ?>
             </button>
             <a href="<?= e(url('/admin')) ?>"

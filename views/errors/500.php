@@ -8,8 +8,8 @@
         Coś się posypało po naszej stronie. Spróbuj za chwilę albo daj znać administratorowi.
     </p>
     <a href="<?= e(url('/')) ?>"
-       class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-medium
-              hover:bg-primary-dark hover:scale-105 transition">
+       class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-medium
+              hover:bg-primary hover:scale-105 transition">
         Wróć na stronę główną
     </a>
 </section>

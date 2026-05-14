@@ -28,6 +28,7 @@ EXCLUDES=(
     --exclude=".vscode"
     --exclude=".env"
     --exclude="vendor"
+    --exclude="node_modules"
     --exclude="storage/sent_emails.log"
     --exclude="public/assets/uploads/banners/*"
     --exclude="public/assets/uploads/avatars/*"
@@ -46,6 +47,17 @@ echo " Wyjazdownik.pl - deployment do ${REMOTE_USER}@${REMOTE_HOST}"
 echo " Local:  ${LOCAL_PATH}"
 echo " Remote: ${REMOTE_PATH}"
 echo "================================================================"
+
+# 0. Build Tailwind (production CSS) - musi byc swiezy przed deployem
+echo ""
+echo "[0/4] Build Tailwind CSS..."
+cd "${LOCAL_PATH}"
+if [ -f "package.json" ]; then
+    npm run build:css || { echo "Build Tailwind failed"; exit 1; }
+    echo "  -> public/assets/css/tailwind.css gotowy"
+else
+    echo "  -> brak package.json, pomijam"
+fi
 
 # 1. Dry run - pokaz co zostanie zmienione
 echo ""

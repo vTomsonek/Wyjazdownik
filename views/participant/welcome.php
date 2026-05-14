@@ -33,7 +33,7 @@ if ($trip->bannerImage) {
         <div class="w-full mb-8 rounded-3xl overflow-hidden shadow-pop bg-paper/40 dark:bg-deep/40"
              style="<?php if ($bannerAspect !== null): ?>aspect-ratio: <?= number_format($bannerAspect, 4, '.', '') ?>;<?php endif; ?> max-height: 480px;">
             <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
-                 class="w-full h-full object-contain" loading="lazy">
+                 class="w-full h-full object-contain" fetchpriority="high" decoding="async">
         </div>
     <?php endif; ?>
 
@@ -63,12 +63,12 @@ if ($trip->bannerImage) {
                     Możesz przejrzeć i zedytować odpowiedzi.
                 </p>
                 <a href="<?= e($startUrl) ?>"
-                   class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark hover:scale-105 transition shadow-pop">
+                   class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-105 transition shadow-pop">
                     Edytuj odpowiedzi →
                 </a>
             <?php else: ?>
                 <a href="<?= e($startUrl) ?>"
-                   class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-semibold text-lg hover:bg-primary-dark hover:scale-105 transition shadow-pop">
+                   class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold text-lg hover:bg-primary hover:scale-105 transition shadow-pop">
                     Zacznij wypełniać →
                 </a>
                 <p class="mt-3 text-sm text-mist">12 krótkich kroków, możesz przerwać i wrócić.</p>

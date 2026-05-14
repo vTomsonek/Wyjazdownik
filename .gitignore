@@ -6,6 +6,11 @@
 # Composer
 /vendor/
 
+# Node (build narzedzia Tailwind)
+/node_modules/
+/npm-debug.log
+/.npm
+
 # Storage (logs, runtime data)
 /storage/sent_emails.log
 /storage/rate_limits/

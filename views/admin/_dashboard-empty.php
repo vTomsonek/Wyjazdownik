@@ -10,7 +10,7 @@
         Czas to zmienić. Stwórz pierwszy wyjazd, dodaj ekipę i wyślij im linki - reszta zrobi się sama.
     </p>
     <a href="<?= e(url('/admin/trips/new')) ?>"
-       class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark hover:scale-105 transition">
+       class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-105 transition">
         Stwórz pierwszy wyjazd
     </a>
 </div>

@@ -65,7 +65,7 @@ $summaryUrl = url('/summary/' . $trip->summaryPublicToken);
                        class="w-full px-3 py-2 rounded-xl bg-cream dark:bg-night border border-mist/15 text-sm font-mono text-ink dark:text-pale">
             </div>
             <button type="button" onclick="copyToClipboard('summary-link', this)"
-                    class="px-4 py-2 rounded-full bg-primary text-white text-sm font-medium hover:bg-primary-dark transition shrink-0">
+                    class="px-4 py-2 rounded-full bg-primary-deep text-white text-sm font-medium hover:bg-primary transition shrink-0">
                 📋 Skopiuj
             </button>
         </div>
@@ -92,7 +92,7 @@ $summaryUrl = url('/summary/' . $trip->summaryPublicToken);
                 </label>
             </div>
             <button type="submit"
-                    class="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition">
+                    class="px-5 py-2.5 rounded-xl bg-primary-deep text-white font-semibold hover:bg-primary transition">
                 Dodaj
             </button>
         </form>

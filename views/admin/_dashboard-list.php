@@ -47,7 +47,7 @@
 
             <div class="mt-auto flex flex-wrap gap-2">
                 <a href="<?= e(url('/admin/trips/' . $trip->id . '/participants')) ?>"
-                   class="flex-1 text-center px-3 py-2 rounded-full bg-primary text-white text-sm font-medium hover:bg-primary-dark transition">
+                   class="flex-1 text-center px-3 py-2 rounded-full bg-primary-deep text-white text-sm font-medium hover:bg-primary transition">
                     Uczestnicy
                 </a>
                 <a href="<?= e(url('/admin/trips/' . $trip->id . '/edit')) ?>"

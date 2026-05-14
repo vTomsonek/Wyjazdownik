@@ -17,5 +17,5 @@
         aria-hidden="true"
         class="absolute left-1/2 -translate-x-1/2 top-[-0.08em]
                w-[0.22em] h-[0.22em] rounded-full bg-primary"
-    ></span></span>k<span class="text-primary">.pl</span>
+    ></span></span>k<span class="text-primary-deep dark:text-primary">.pl</span>
 </span>

@@ -75,8 +75,8 @@ $devMagicLink = $devMagicLink ?? null;
                           transition outline-none">
 
             <button type="submit"
-                    class="w-full mt-4 px-6 py-3 rounded-full bg-primary text-white font-semibold
-                           hover:bg-primary-dark hover:scale-[1.01] transition shadow-pop">
+                    class="w-full mt-4 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold
+                           hover:bg-primary hover:scale-[1.01] transition shadow-pop">
                 Wyślij magic link
             </button>
 

@@ -85,7 +85,7 @@ $bar = static function (string $label, int $votes, int $total, string $color): s
                         // Tagi - im wiecej osob zaznaczylo, tym wiekszy
                         $isTop    = $votes >= max(1, (int) ceil($count / 2));
                         $sizeCls  = $isTop ? 'text-base md:text-lg px-4 py-2' : 'text-sm px-3 py-1.5';
-                        $colorCls = $isTop ? 'bg-primary text-white' : 'bg-mist/15 text-ink dark:text-pale';
+                        $colorCls = $isTop ? 'bg-primary-deep text-white' : 'bg-mist/15 text-ink dark:text-pale';
                     ?>
                     <span class="inline-flex items-center gap-1.5 rounded-full font-medium <?= $sizeCls ?> <?= $colorCls ?>">
                         <?= e($label) ?>
