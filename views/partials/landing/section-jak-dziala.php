@@ -40,7 +40,7 @@
                         <div class="text-3xl mb-2">📝</div>
                         <h3 class="font-display font-bold text-xl md:text-2xl mb-2 text-ink dark:text-pale">Każdy wypełnia ankietę</h3>
                         <p class="text-mist leading-relaxed">
-                            Twoi znajomi przez przeglądarkę odpowiadają na pytania o budżet, terminy, pomysły. Zaznaczają pinezki na mapie.
+                            Twoi znajomi przez przeglądarkę odpowiadają na pytania o budżet, terminy, pomysły. Dorzucają miejsca na wspólną mapę ze zdjęciami i opisem.
                         </p>
                     </div>
                 </div>

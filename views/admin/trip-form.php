@@ -252,7 +252,7 @@ $action = $isEdit ? url('/admin/trips/' . $trip->id . '/edit') : url('/admin/tri
                 Banner <span class="font-normal text-mist text-xs">(opcjonalnie, JPEG/PNG/WebP, max 2 MB)</span>
             </label>
             <?php if ($isEdit && $trip->bannerImage): ?>
-                <img src="<?= e(asset($trip->bannerImage)) ?>" alt="Aktualny banner" class="mb-2 w-full h-32 object-cover rounded-xl border border-mist/15">
+                <img src="<?= e(asset($trip->bannerImage)) ?>" alt="Aktualny banner" class="mb-2 w-full max-h-72 object-contain rounded-xl border border-mist/15 bg-cream dark:bg-night">
             <?php endif; ?>
             <input type="file" id="banner_image" name="banner_image" accept="image/jpeg,image/png,image/webp"
                    class="block w-full text-sm text-mist file:mr-4 file:px-4 file:py-2 file:rounded-full file:border-0 file:bg-primary/10 file:text-primary file:font-medium hover:file:bg-primary/20 file:cursor-pointer">

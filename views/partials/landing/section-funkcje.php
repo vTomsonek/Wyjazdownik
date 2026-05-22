@@ -3,7 +3,7 @@
 $features = [
     ['📅', 'Inteligentny kalendarz', 'Znajdzie terminy gdzie wszyscy mogą - heatmapa pokazuje gdzie ekipa się pokrywa.', 'primary'],
     ['💰', 'Wspólny budżet',         'Zobacz na ile stać ekipę realnie. Mediana, najwyższy, najniższy - wszystko na jednym wykresie.', 'secondary'],
-    ['🗺️', 'Mapa pomysłów',          'Rysujcie trasy i pinezki, każdy widzi pomysły reszty - bez wymiany screenów.', 'accent'],
+    ['🗺️', 'Mapa atrakcji',          'Każdy dodaje miejsca z Google z opisem i zdjęciami. Ekipa ocenia, a algorytm proponuje optymalne trasy.', 'accent'],
     ['🏆', 'Rankingi ekipy',         'Kto jest Kebab Masterem? Kto Rybką? Kto Krezusem? Algorytm przyznaje odznaki na podstawie odpowiedzi.', 'primary'],
     ['🎯', 'Brutalne wnioski',       '"Najsłabsze ogniwo" pokaże do czego trzeba się dostosować. Realistycznie, bez owijania w bawełnę.', 'secondary'],
     ['📺', 'Tryb prezentacji',       'Włączcie na TV i obejrzyjcie razem. Pełnoekranowy slideshow, nawigacja strzałkami.', 'accent'],

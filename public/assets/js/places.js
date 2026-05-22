@@ -906,6 +906,25 @@
 
         if (!box || !label || !bar) return;
 
+        // Client-side validation: rozmiar + format (zanim uruchomimy XHR)
+        const limits = {
+            image: { bytes: 5 * 1024 * 1024,  label: '5 MB', types: ['image/jpeg', 'image/png', 'image/webp'], typesLabel: 'JPEG / PNG / WebP' },
+            video: { bytes: 50 * 1024 * 1024, label: '50 MB', types: ['video/mp4', 'video/webm', 'video/quicktime'], typesLabel: 'MP4 / WebM / MOV' },
+        };
+        const lim = limits[type];
+        if (lim) {
+            if (file.size > lim.bytes) {
+                showUploadError(`Plik za duży (${formatBytes(file.size)}). Maksimum dla ${type === 'image' ? 'zdjęć' : 'wideo'}: ${lim.label}.`);
+                if (inputEl) inputEl.value = '';
+                return;
+            }
+            if (file.type && !lim.types.includes(file.type)) {
+                showUploadError(`Nieobsługiwany format (${file.type || 'nieznany'}). Akceptowane: ${lim.typesLabel}.`);
+                if (inputEl) inputEl.value = '';
+                return;
+            }
+        }
+
         // Reset UI
         box.classList.remove('hidden');
         bar.classList.remove('bg-secondary', 'bg-red-500');
@@ -989,6 +1008,25 @@
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
         return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    function showUploadError(message) {
+        const box       = document.getElementById('upload-status');
+        const label     = document.getElementById('upload-label');
+        const percentEl = document.getElementById('upload-percent');
+        const bar       = document.getElementById('upload-progress-bar');
+        if (!box || !label || !bar) {
+            alert(message);
+            return;
+        }
+        box.classList.remove('hidden');
+        bar.classList.remove('bg-secondary', 'bg-primary-deep', 'animate-pulse');
+        bar.classList.add('bg-red-500');
+        bar.style.width = '100%';
+        if (percentEl) percentEl.textContent = '⚠';
+        label.textContent = message;
+        // Schowaj po chwili
+        setTimeout(() => { box.classList.add('hidden'); }, 5000);
     }
 
     async function submitLink() {

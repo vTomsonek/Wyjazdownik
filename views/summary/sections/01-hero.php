@@ -25,12 +25,14 @@ if ($trip->bannerImage) {
     }
 }
 ?>
-<section class="relative overflow-hidden flex items-center"
-    <?php if ($bannerAspect !== null): ?>style="aspect-ratio: <?= number_format($bannerAspect, 4, '.', '') ?>;"<?php endif; ?>>
+<section class="relative overflow-hidden flex items-center md:items-center"
+    <?php if ($bannerAspect !== null): ?>style="--banner-aspect: <?= number_format($bannerAspect, 4, '.', '') ?>;"<?php endif; ?>>
     <?php if ($trip->bannerImage): ?>
         <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
-             class="absolute inset-0 w-full h-full object-cover object-center opacity-40 dark:opacity-30"
+             class="absolute inset-0 w-full h-full object-cover object-center opacity-30 dark:opacity-25"
              fetchpriority="high" decoding="async">
+        <!-- Gradient overlay - czytelność tekstu nad bannerem -->
+        <div class="absolute inset-0 bg-gradient-to-t from-cream via-cream/70 to-cream/30 dark:from-night dark:via-night/70 dark:to-night/30"></div>
     <?php endif; ?>
     <div class="absolute inset-0 -z-10 bg-gradient-to-br from-cream via-cream to-accent/20 dark:from-night dark:via-night dark:to-secondary/10"></div>
 

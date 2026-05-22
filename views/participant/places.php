@@ -94,11 +94,11 @@ $hasApiKey = $googleMapsApiKey !== '';
         </div>
 
         <!-- Lista miejsc -->
-        <aside class="rounded-2xl border border-mist/15 bg-paper dark:bg-deep p-5 max-h-[75vh] overflow-y-auto">
-            <h3 class="font-display font-bold text-lg text-ink dark:text-pale mb-4">
+        <aside class="rounded-2xl border border-mist/15 bg-paper dark:bg-deep max-h-[75vh] flex flex-col overflow-hidden">
+            <h3 class="shrink-0 px-5 pt-5 pb-3 font-display font-bold text-lg text-ink dark:text-pale border-b border-mist/15">
                 Miejsca <span class="text-mist font-normal text-sm">(<?= count($places) ?>)</span>
             </h3>
-            <div id="places-list" class="space-y-3">
+            <div id="places-list" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-3">
                 <?php if (empty($places)): ?>
                     <p class="text-mist text-sm italic">
                         Nikt jeszcze nie dodał miejsca. Bądź pierwszy! Kliknij "Dodaj miejsce"
@@ -187,7 +187,7 @@ $hasApiKey = $googleMapsApiKey !== '';
 
     <!-- Modal dodawania miejsca -->
     <div id="add-place-modal" class="fixed inset-0 z-[9999] hidden bg-black/60 backdrop-blur-sm items-center justify-center p-4">
-        <div class="bg-paper dark:bg-deep rounded-2xl shadow-pop-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="bg-paper dark:bg-deep rounded-2xl shadow-pop-lg max-w-lg w-full max-h-[90vh] overflow-y-auto scroll-thin">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-display font-bold text-xl text-ink dark:text-pale">Dodaj miejsce</h3>

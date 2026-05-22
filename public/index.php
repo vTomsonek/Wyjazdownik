@@ -19,6 +19,7 @@ use App\Controllers\ParticipantMapController;
 use App\Controllers\ParticipantWizardController;
 use App\Controllers\TripPlacesController;
 use App\Controllers\SummaryController;
+use App\Controllers\LiveRouteController;
 use App\Services\AuthService;
 
 session_start();
@@ -114,7 +115,9 @@ $router->get ('/p/{token:hex}/routes',                                [TripPlace
 // ---------------------------------------------------------------------------
 // Placeholder routes - prawdziwe handlery w kolejnych etapach
 // ---------------------------------------------------------------------------
-$router->get('/summary/{token:hex}', [SummaryController::class, 'show']);
+$router->get('/summary/{token:hex}',                          [SummaryController::class, 'show']);
+$router->get('/summary/{token:hex}/trasa',                    [LiveRouteController::class, 'showRoute']);
+$router->get('/summary/{token:hex}/places/{id:int}/media',    [LiveRouteController::class, 'listMedia']);
 
 // ---------------------------------------------------------------------------
 // Dispatch

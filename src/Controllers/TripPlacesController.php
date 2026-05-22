@@ -103,19 +103,30 @@ final class TripPlacesController extends Controller
             $countryCode = ''; // ignoruj nieprawidłowy ISO code
         }
 
-        $place = TripPlace::create([
-            'trip_id'         => $trip->id,
-            'participant_id'  => $participant->id,
-            'name'            => $name,
-            'description'     => $description !== '' ? $description : null,
-            'visit_minutes'   => $visitMinutes,
-            'lat'             => $lat,
-            'lng'             => $lng,
-            'address'         => $address !== '' ? $address : null,
-            'country_code'    => $countryCode !== '' ? $countryCode : null,
-            'osm_place_id'    => $osmPlaceId !== '' ? $osmPlaceId : null,
-            'google_place_id' => $googlePlaceId !== '' ? $googlePlaceId : null,
-        ]);
+        // Defensive truncate - zeby Google API nie crashowal nas dlugimi stringami
+        if (mb_strlen($address) > 800)            $address = mb_substr($address, 0, 800);
+        if (mb_strlen($googlePlaceId) > 255)      $googlePlaceId = mb_substr($googlePlaceId, 0, 255);
+        if (mb_strlen($osmPlaceId) > 50)          $osmPlaceId = mb_substr($osmPlaceId, 0, 50);
+        if (mb_strlen($description) > 2000)       $description = mb_substr($description, 0, 2000);
+
+        try {
+            $place = TripPlace::create([
+                'trip_id'         => $trip->id,
+                'participant_id'  => $participant->id,
+                'name'            => $name,
+                'description'     => $description !== '' ? $description : null,
+                'visit_minutes'   => $visitMinutes,
+                'lat'             => $lat,
+                'lng'             => $lng,
+                'address'         => $address !== '' ? $address : null,
+                'country_code'    => $countryCode !== '' ? $countryCode : null,
+                'osm_place_id'    => $osmPlaceId !== '' ? $osmPlaceId : null,
+                'google_place_id' => $googlePlaceId !== '' ? $googlePlaceId : null,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[trip_places.create] ' . $e->getMessage());
+            $this->json(['ok' => false, 'error' => 'Nie udało się zapisać miejsca. Spróbuj uprościć nazwę/opis.'], 422);
+        }
 
         $this->json(['ok' => true, 'place' => $place->toArray()]);
     }

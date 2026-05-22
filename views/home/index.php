@@ -61,6 +61,7 @@ $devData = $devData ?? null;
 <?php require BASE_PATH . '/views/partials/landing/section-problem.php'; ?>
 <?php require BASE_PATH . '/views/partials/landing/section-jak-dziala.php'; ?>
 <?php require BASE_PATH . '/views/partials/landing/section-funkcje.php'; ?>
+<?php require BASE_PATH . '/views/partials/landing/section-mapa.php'; ?>
 <?php require BASE_PATH . '/views/partials/landing/section-dla-kogo.php'; ?>
 <?php require BASE_PATH . '/views/partials/landing/section-ranking.php'; ?>
 <?php require BASE_PATH . '/views/partials/landing/section-faq.php'; ?>

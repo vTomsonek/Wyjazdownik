@@ -99,8 +99,8 @@ $fmt = static fn(int $n): string => number_format($n, 0, ',', ' ');
                     <div class="flex items-center gap-3 text-sm">
                         <span class="w-24 md:w-28 shrink-0 truncate text-ink dark:text-pale"><?= e($b['name']) ?></span>
                         <div class="flex-1 h-7 md:h-9 bg-mist/15 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full flex items-center justify-end px-3 text-white font-mono font-semibold text-xs md:text-sm"
-                                 style="width: <?= max(15, $pct) ?>%; background: <?= e($b['color']) ?>">
+                            <div class="h-full rounded-full flex items-center justify-end px-3 text-white font-mono font-semibold text-xs md:text-sm whitespace-nowrap"
+                                 style="width: <?= max(22, $pct) ?>%; min-width: 5.5rem; background: <?= e($b['color']) ?>">
                                 <?= e($fmt($b['value'])) ?> zł
                             </div>
                         </div>

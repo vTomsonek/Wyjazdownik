@@ -113,6 +113,20 @@ $googleMapsApiKey = (string) config('google.maps_api_key', '');
             </div>
         <?php else: ?>
 
+        <!-- CTA: Tryb trasy (geolocation, mobile, in-trip) -->
+        <a href="<?= e(url('/summary/' . $trip->summaryPublicToken . '/trasa')) ?>"
+           class="group block mb-6 rounded-2xl bg-gradient-to-r from-primary to-primary-deep text-white p-5 md:p-6 shadow-pop hover:shadow-pop-lg hover:scale-[1.01] transition">
+            <div class="flex items-center gap-4">
+                <div class="text-4xl md:text-5xl shrink-0">🚗</div>
+                <div class="flex-1">
+                    <div class="text-xs uppercase tracking-wide opacity-80 font-semibold mb-0.5">Już w trasie?</div>
+                    <h3 class="font-display font-bold text-lg md:text-xl mb-0.5">Otwórz tryb trasy</h3>
+                    <p class="text-sm opacity-90">Mapa z atrakcjami + Twoja pozycja na żywo. Działa na telefonie w aucie.</p>
+                </div>
+                <svg class="w-6 h-6 shrink-0 group-hover:translate-x-1 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </div>
+        </a>
+
         <!-- Status ocen per uczestnik (peer pressure: dążymy żeby każdy ocenił wszystko) -->
         <div class="rounded-2xl bg-paper dark:bg-deep border border-mist/15 p-5 mb-6">
             <h3 class="font-display font-bold text-base text-ink dark:text-pale mb-3 flex items-center gap-2">
@@ -127,9 +141,15 @@ $googleMapsApiKey = (string) config('google.maps_api_key', '');
                     $color = $colors[$p->id] ?? '#FF6B35';
                 ?>
                 <div class="flex items-center gap-2 px-3 py-2 rounded-xl <?= $fullDone ? 'bg-secondary/10 border border-secondary/30' : ($missing > 0 ? 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40' : 'bg-mist/10') ?>">
-                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-xs font-bold shrink-0" style="background:<?= e($color) ?>">
-                        <?= e(mb_strtoupper(mb_substr($nick, 0, 1))) ?>
-                    </span>
+                    <?php if (!$anonymous && $p->avatarPath): ?>
+                        <img src="<?= e(asset($p->avatarPath)) ?>" alt=""
+                             class="w-7 h-7 rounded-full object-cover shrink-0 border-2"
+                             style="border-color: <?= e($color) ?>">
+                    <?php else: ?>
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-xs font-bold shrink-0" style="background:<?= e($color) ?>">
+                            <?= e(mb_strtoupper(mb_substr($nick, 0, 1))) ?>
+                        </span>
+                    <?php endif; ?>
                     <div class="flex-1 min-w-0">
                         <div class="font-medium text-sm text-ink dark:text-pale truncate"><?= e($nick) ?></div>
                         <div class="text-xs <?= $fullDone ? 'text-secondary font-semibold' : ($missing > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-mist') ?>">

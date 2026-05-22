@@ -56,6 +56,9 @@ final class SummaryController extends Controller
             summaryPublicToken:       (string) $row['summary_public_token'],
             createdAt:                (string) $row['created_at'],
             updatedAt:                (string) $row['updated_at'],
+            startName:                isset($row['start_name']) && $row['start_name'] !== null ? (string) $row['start_name'] : null,
+            startLat:                 isset($row['start_lat']) && $row['start_lat'] !== null ? (float) $row['start_lat'] : null,
+            startLng:                 isset($row['start_lng']) && $row['start_lng'] !== null ? (float) $row['start_lng'] : null,
         );
     }
 }

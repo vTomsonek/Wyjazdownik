@@ -80,12 +80,27 @@ body {
     }
 }
 
-/* Scrollbar - delikatne dostosowanie do trybu ciemnego */
+/* Smukly scrollbar GLOBALNIE - chowamy domyslny gruby scrollbar przegladarki
+   na wszystkich scrollowanych kontenerach. Klasa .scroll-thin zostawiona
+   dla wstecznej kompatybilnosci ale w praktyce nie jest juz potrzebna. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.25);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.5);
+}
+html { scrollbar-width: thin; scrollbar-color: rgba(107, 114, 128, 0.3) transparent; }
+
 @media (prefers-color-scheme: dark) {
-    ::-webkit-scrollbar-thumb { background-color: rgba(240, 244, 248, 0.2); }
+    ::-webkit-scrollbar-thumb { background-color: rgba(240, 244, 248, 0.18); }
+    ::-webkit-scrollbar-thumb:hover { background-color: rgba(240, 244, 248, 0.4); }
 }
 
-/* Smukly scrollbar - dla overflow-y-auto elementow (modale, listy) */
+/* Klasa .scroll-thin (legacy) - dziedziczy z globalu, zostawiamy zeby
+   istniejacy markup dzialal dokladnie tak samo. */
 .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
 .scroll-thin::-webkit-scrollbar-track { background: transparent; }
 .scroll-thin::-webkit-scrollbar-thumb {
