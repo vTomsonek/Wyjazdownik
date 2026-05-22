@@ -67,4 +67,10 @@ return [
         'tiktok'    => trim((string) env('SOCIAL_TIKTOK', '')),
     ],
 
+    // Google Maps - klucz API potrzebny do mapy atrakcji (Etap 1 nowej funkcji).
+    // Restrict klucz po HTTP referrer dla wyjazdownik.pl/*.
+    'google' => [
+        'maps_api_key' => trim((string) env('GOOGLE_MAPS_API_KEY', '')),
+    ],
+
 ];

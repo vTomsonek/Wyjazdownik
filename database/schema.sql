@@ -7,6 +7,8 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS `trip_responses_audit`;
+DROP TABLE IF EXISTS `trip_place_media`;
+DROP TABLE IF EXISTS `trip_places`;
 DROP TABLE IF EXISTS `participant_map_pins`;
 DROP TABLE IF EXISTS `participant_responses`;
 DROP TABLE IF EXISTS `participant_preferred_weeks`;
@@ -193,6 +195,56 @@ CREATE TABLE `participant_map_pins` (
     KEY `idx_pins_type` (`pin_type`),
     CONSTRAINT `fk_pins_participant`
         FOREIGN KEY (`participant_id`) REFERENCES `participants` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- trip_places - nowa kolaboratywna mapa atrakcji (zastapuje participant_map_pins)
+-- Kazdy uczestnik moze dodac konkretne miejsce (POI) z lokalizacja i opisem.
+-- ----------------------------------------------------------------------------
+CREATE TABLE `trip_places` (
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `trip_id`        BIGINT UNSIGNED NOT NULL,
+    `participant_id` BIGINT UNSIGNED NOT NULL,
+    `name`           VARCHAR(200) NOT NULL,
+    `description`    TEXT NULL DEFAULT NULL,
+    `lat`            DECIMAL(10, 7) NOT NULL,
+    `lng`            DECIMAL(10, 7) NOT NULL,
+    `address`         VARCHAR(500) NULL DEFAULT NULL,
+    `country_code`    VARCHAR(2) NULL DEFAULT NULL,
+    `osm_place_id`    VARCHAR(50) NULL DEFAULT NULL,
+    `google_place_id` VARCHAR(100) NULL DEFAULT NULL,
+    `created_at`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_trip_places_trip`        (`trip_id`),
+    KEY `idx_trip_places_participant` (`participant_id`),
+    KEY `idx_trip_places_country`     (`trip_id`, `country_code`),
+    CONSTRAINT `fk_trip_places_trip`
+        FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_trip_places_participant`
+        FOREIGN KEY (`participant_id`) REFERENCES `participants` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- trip_place_media - zdjecia, wideo, linki dla atrakcji
+-- ----------------------------------------------------------------------------
+CREATE TABLE `trip_place_media` (
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `place_id`   BIGINT UNSIGNED NOT NULL,
+    `type`       ENUM('image', 'video', 'link') NOT NULL,
+    `file_path`  VARCHAR(500) NULL DEFAULT NULL,
+    `url`        VARCHAR(500) NULL DEFAULT NULL,
+    `caption`    VARCHAR(300) NULL DEFAULT NULL,
+    `sort_order` INT NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_media_place` (`place_id`, `sort_order`),
+    KEY `idx_media_type`  (`place_id`, `type`),
+    CONSTRAINT `fk_media_place`
+        FOREIGN KEY (`place_id`) REFERENCES `trip_places` (`id`)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

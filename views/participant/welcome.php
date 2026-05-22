@@ -62,10 +62,16 @@ if ($trip->bannerImage) {
                     <span class="font-mono"><?= e(date('d.m.Y', strtotime((string) $participant->completedAt))) ?></span>.
                     Możesz przejrzeć i zedytować odpowiedzi.
                 </p>
-                <a href="<?= e($startUrl) ?>"
-                   class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-105 transition shadow-pop">
-                    Edytuj odpowiedzi →
-                </a>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <a href="<?= e($startUrl) ?>"
+                       class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-105 transition shadow-pop">
+                        Edytuj odpowiedzi →
+                    </a>
+                    <a href="<?= e(url('/p/' . $participant->accessToken . '/atrakcje')) ?>"
+                       class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-paper dark:bg-deep border-2 border-secondary text-secondary font-semibold hover:bg-secondary hover:text-white transition">
+                        🗺️ Mapa atrakcji ekipy
+                    </a>
+                </div>
             <?php else: ?>
                 <a href="<?= e($startUrl) ?>"
                    class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold text-lg hover:bg-primary hover:scale-105 transition shadow-pop">

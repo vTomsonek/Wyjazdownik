@@ -17,6 +17,7 @@ use App\Controllers\AdminTripsController;
 use App\Controllers\AdminParticipantsController;
 use App\Controllers\ParticipantMapController;
 use App\Controllers\ParticipantWizardController;
+use App\Controllers\TripPlacesController;
 use App\Controllers\SummaryController;
 use App\Services\AuthService;
 
@@ -86,6 +87,21 @@ $router->get ('/p/{token:hex}/map/pins',                  [ParticipantMapControl
 $router->post('/p/{token:hex}/map/pins',                  [ParticipantMapController::class, 'createPin']);
 $router->post('/p/{token:hex}/map/pins/{id:int}/update',  [ParticipantMapController::class, 'updatePin']);
 $router->post('/p/{token:hex}/map/pins/{id:int}/delete',  [ParticipantMapController::class, 'deletePin']);
+
+// ---------------------------------------------------------------------------
+// Nowa kolaboratywna mapa atrakcji (zastapuje stara mape pomyslow)
+// ---------------------------------------------------------------------------
+$router->get ('/p/{token:hex}/atrakcje',                              [TripPlacesController::class, 'showMap']);
+$router->get ('/p/{token:hex}/places',                                [TripPlacesController::class, 'listPlaces']);
+$router->post('/p/{token:hex}/places',                                [TripPlacesController::class, 'createPlace']);
+$router->post('/p/{token:hex}/places/{id:int}/edit',                  [TripPlacesController::class, 'updatePlace']);
+$router->post('/p/{token:hex}/places/{id:int}/delete',                [TripPlacesController::class, 'deletePlace']);
+
+// Media (zdjecia, wideo, linki) per miejsce
+$router->get ('/p/{token:hex}/places/{id:int}/media',                 [TripPlacesController::class, 'listMedia']);
+$router->post('/p/{token:hex}/places/{id:int}/media/upload',          [TripPlacesController::class, 'uploadMedia']);
+$router->post('/p/{token:hex}/places/{id:int}/media/link',            [TripPlacesController::class, 'addLink']);
+$router->post('/p/{token:hex}/places/{id:int}/media/{mediaId:int}/delete', [TripPlacesController::class, 'deleteMedia']);
 
 // ---------------------------------------------------------------------------
 // Placeholder routes - prawdziwe handlery w kolejnych etapach

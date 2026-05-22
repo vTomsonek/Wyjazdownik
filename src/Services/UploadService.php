@@ -39,6 +39,35 @@ final class UploadService
     }
 
     /**
+     * Upload zdjecia dla miejsca atrakcji. Max 5MB, JPG/PNG/WebP.
+     * Pliki idą do public/assets/uploads/places/{place_id}/.
+     * @param array<string,mixed> $file
+     */
+    public static function uploadPlaceImage(array $file, int $placeId): ?string
+    {
+        return self::handle(
+            $file,
+            'places/' . $placeId,
+            5 * 1024 * 1024,  // 5 MB
+            ['image/jpeg', 'image/png', 'image/webp']
+        );
+    }
+
+    /**
+     * Upload wideo dla miejsca atrakcji. Max 50MB, MP4/WebM/QuickTime.
+     * @param array<string,mixed> $file
+     */
+    public static function uploadPlaceVideo(array $file, int $placeId): ?string
+    {
+        return self::handle(
+            $file,
+            'places/' . $placeId,
+            50 * 1024 * 1024,  // 50 MB
+            ['video/mp4', 'video/webm', 'video/quicktime']
+        );
+    }
+
+    /**
      * Usuwa plik z dysku. Bezpieczne - sprawdza że ścieżka jest w obrębie uploads/.
      */
     public static function delete(?string $relativePath): void
@@ -61,9 +90,15 @@ final class UploadService
 
     /**
      * @param array<string,mixed> $file
+     * @param list<string>|null   $allowedMimes Override domyslnych mime types
+     * @param int|null            $maxSize      Override domyslnego limitu rozmiaru (bajty)
      */
-    private static function handle(array $file, string $subdir): ?string
-    {
+    private static function handle(
+        array $file,
+        string $subdir,
+        ?int $maxSize = null,
+        ?array $allowedMimes = null
+    ): ?string {
         // Brak uploadu - to OK, wracamy null
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($error === UPLOAD_ERR_NO_FILE) {
@@ -79,7 +114,7 @@ final class UploadService
             throw new RuntimeException('To nie jest legalny upload.');
         }
 
-        $maxSize = (int) config('upload.max_size', 2_097_152);
+        $maxSize = $maxSize ?? (int) config('upload.max_size', 2_097_152);
         if ($size > $maxSize) {
             throw new RuntimeException(
                 'Plik za duży (max ' . round($maxSize / 1024 / 1024, 1) . ' MB).'
@@ -89,18 +124,21 @@ final class UploadService
         // MIME przez finfo - nie ufamy $_FILES['type']
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mime  = (string) $finfo->file($tmpName);
-        $allowed = (array) config('upload.allowed_mimes', ['image/jpeg', 'image/png', 'image/webp']);
+        $allowed = $allowedMimes ?? (array) config('upload.allowed_mimes', ['image/jpeg', 'image/png', 'image/webp']);
         if (!in_array($mime, $allowed, true)) {
             throw new RuntimeException(
-                'Nieobsługiwany typ pliku (' . $mime . '). Dozwolone: JPEG, PNG, WebP.'
+                'Nieobsługiwany typ pliku (' . $mime . '). Dozwolone: ' . implode(', ', $allowed)
             );
         }
 
         $ext = match ($mime) {
-            'image/jpeg' => 'jpg',
-            'image/png'  => 'png',
-            'image/webp' => 'webp',
-            default      => 'jpg',
+            'image/jpeg'      => 'jpg',
+            'image/png'       => 'png',
+            'image/webp'      => 'webp',
+            'video/mp4'       => 'mp4',
+            'video/webm'      => 'webm',
+            'video/quicktime' => 'mov',
+            default           => 'bin',
         };
 
         $filename = bin2hex(random_bytes(16)) . '.' . $ext;

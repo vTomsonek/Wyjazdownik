@@ -57,7 +57,20 @@ if (!function_exists('asset')) {
     function asset(string $path): string
     {
         $base = rtrim((string) env('APP_URL', ''), '/');
-        return $base . '/' . ltrim($path, '/');
+        $rel  = ltrim($path, '/');
+        $url  = $base . '/' . $rel;
+
+        // Cache busting: dodaj ?v=mtime dla lokalnych plikow (CSS/JS/IMG).
+        // Cloudflare i przegladarka uzyskaja nowa wersje po kazdej zmianie pliku.
+        // Pomijaj zdalne URL i query string juz obecny.
+        if (strpos($rel, '://') === false && strpos($url, '?') === false) {
+            // BASE_PATH wskazuje root projektu; public/ to subfolder.
+            $absPath = defined('BASE_PATH') ? BASE_PATH . '/public/' . $rel : null;
+            if ($absPath !== null && is_file($absPath)) {
+                $url .= '?v=' . filemtime($absPath);
+            }
+        }
+        return $url;
     }
 }
 
