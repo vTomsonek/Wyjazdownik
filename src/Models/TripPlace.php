@@ -25,6 +25,7 @@ final class TripPlace
         public readonly ?string $googlePlaceId,
         public readonly string $createdAt,
         public readonly string $updatedAt,
+        public readonly int $visitMinutes = 60,
     ) {}
 
     public static function findById(int $id): ?self
@@ -55,15 +56,16 @@ final class TripPlace
         $pdo = Connection::get();
         $stmt = $pdo->prepare(
             'INSERT INTO trip_places
-                (trip_id, participant_id, name, description, lat, lng, address, country_code, osm_place_id, google_place_id)
+                (trip_id, participant_id, name, description, visit_minutes, lat, lng, address, country_code, osm_place_id, google_place_id)
              VALUES
-                (:trip_id, :participant_id, :name, :description, :lat, :lng, :address, :country_code, :osm_place_id, :google_place_id)'
+                (:trip_id, :participant_id, :name, :description, :visit_minutes, :lat, :lng, :address, :country_code, :osm_place_id, :google_place_id)'
         );
         $stmt->execute([
             'trip_id'         => $data['trip_id'],
             'participant_id'  => $data['participant_id'],
             'name'            => $data['name'],
             'description'     => $data['description'] ?? null,
+            'visit_minutes'   => $data['visit_minutes'] ?? 60,
             'lat'             => $data['lat'],
             'lng'             => $data['lng'],
             'address'         => $data['address'] ?? null,
@@ -76,7 +78,7 @@ final class TripPlace
 
     public function update(array $data): self
     {
-        $allowed = ['name', 'description'];
+        $allowed = ['name', 'description', 'visit_minutes'];
         $sets = [];
         $params = ['id' => $this->id];
         foreach ($allowed as $f) {
@@ -108,6 +110,7 @@ final class TripPlace
             'participant_id'  => $this->participantId,
             'name'            => $this->name,
             'description'     => $this->description,
+            'visit_minutes'   => $this->visitMinutes,
             'lat'             => $this->lat,
             'lng'             => $this->lng,
             'address'         => $this->address,
@@ -133,6 +136,7 @@ final class TripPlace
             googlePlaceId: isset($row['google_place_id']) && $row['google_place_id'] !== null ? (string) $row['google_place_id'] : null,
             createdAt:     (string) $row['created_at'],
             updatedAt:     (string) $row['updated_at'],
+            visitMinutes:  isset($row['visit_minutes']) ? (int) $row['visit_minutes'] : 60,
         );
     }
 }

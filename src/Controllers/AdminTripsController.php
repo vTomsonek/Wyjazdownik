@@ -65,6 +65,9 @@ final class AdminTripsController extends Controller
             'calendar_mode'             => $data['calendar_mode'],
             'show_individual_responses' => $data['show_individual_responses'],
             'is_active'                 => true,
+            'start_name'                => $data['start_name'],
+            'start_lat'                 => $data['start_lat'],
+            'start_lng'                 => $data['start_lng'],
         ]);
 
         unset($_SESSION['_form_errors'], $_SESSION['_form_old']);
@@ -117,6 +120,9 @@ final class AdminTripsController extends Controller
             'date_to'                   => $data['date_to'],
             'calendar_mode'             => $data['calendar_mode'],
             'show_individual_responses' => $data['show_individual_responses'],
+            'start_name'                => $data['start_name'],
+            'start_lat'                 => $data['start_lat'],
+            'start_lng'                 => $data['start_lng'],
         ];
 
         // Slug edytowalny - jeśli admin go zmienił, regenerujemy unikalność
@@ -169,6 +175,19 @@ final class AdminTripsController extends Controller
      */
     private function collectTripData(Request $request): array
     {
+        $startName = trim((string) $request->input('start_name', ''));
+        $startLat  = $request->input('start_lat');
+        $startLng  = $request->input('start_lng');
+        // Punkt startowy zapisujemy tylko gdy ma kompletne lat+lng (nie sam tekst)
+        if ($startName === '' || !is_numeric($startLat) || !is_numeric($startLng)) {
+            $startName = null;
+            $startLat = null;
+            $startLng = null;
+        } else {
+            $startLat = (float) $startLat;
+            $startLng = (float) $startLng;
+        }
+
         return [
             'name'                      => trim((string) $request->input('name', '')),
             'slug'                      => trim((string) $request->input('slug', '')),
@@ -177,6 +196,9 @@ final class AdminTripsController extends Controller
             'date_to'                   => (string) $request->input('date_to', ''),
             'calendar_mode'             => (string) $request->input('calendar_mode', 'block_unavailable'),
             'show_individual_responses' => (bool) $request->input('show_individual_responses', false),
+            'start_name'                => $startName,
+            'start_lat'                 => $startLat,
+            'start_lng'                 => $startLng,
         ];
     }
 

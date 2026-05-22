@@ -30,6 +30,9 @@ final class Trip
         public readonly string $summaryPublicToken,
         public readonly string $createdAt,
         public readonly string $updatedAt,
+        public readonly ?string $startName = null,
+        public readonly ?float $startLat = null,
+        public readonly ?float $startLng = null,
     ) {
     }
 
@@ -97,10 +100,12 @@ final class Trip
         $stmt  = $pdo->prepare(
             'INSERT INTO trips
              (admin_id, name, slug, description, banner_image, date_from, date_to,
-              calendar_mode, show_individual_responses, is_active, summary_public_token)
+              calendar_mode, show_individual_responses, is_active, summary_public_token,
+              start_name, start_lat, start_lng)
              VALUES
              (:admin_id, :name, :slug, :description, :banner_image, :date_from, :date_to,
-              :calendar_mode, :show_individual_responses, :is_active, :summary_public_token)'
+              :calendar_mode, :show_individual_responses, :is_active, :summary_public_token,
+              :start_name, :start_lat, :start_lng)'
         );
         $stmt->execute([
             'admin_id'                  => $data['admin_id'],
@@ -114,6 +119,9 @@ final class Trip
             'show_individual_responses' => $data['show_individual_responses'] ? 1 : 0,
             'is_active'                 => $data['is_active'] ? 1 : 0,
             'summary_public_token'      => $token,
+            'start_name'                => $data['start_name'] ?? null,
+            'start_lat'                 => $data['start_lat'] ?? null,
+            'start_lng'                 => $data['start_lng'] ?? null,
         ]);
         return self::findById((int) $pdo->lastInsertId());
     }
@@ -126,6 +134,7 @@ final class Trip
         $allowed = [
             'name', 'slug', 'description', 'banner_image', 'date_from', 'date_to',
             'calendar_mode', 'show_individual_responses', 'is_active',
+            'start_name', 'start_lat', 'start_lng',
         ];
         $sets = [];
         $params = ['id' => $this->id];
@@ -183,6 +192,9 @@ final class Trip
             summaryPublicToken:       (string) $row['summary_public_token'],
             createdAt:                (string) $row['created_at'],
             updatedAt:                (string) $row['updated_at'],
+            startName:                isset($row['start_name']) && $row['start_name'] !== null ? (string) $row['start_name'] : null,
+            startLat:                 isset($row['start_lat']) && $row['start_lat'] !== null ? (float) $row['start_lat'] : null,
+            startLng:                 isset($row['start_lng']) && $row['start_lng'] !== null ? (float) $row['start_lng'] : null,
         );
     }
 }

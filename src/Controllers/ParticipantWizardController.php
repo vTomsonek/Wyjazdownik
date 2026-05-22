@@ -24,12 +24,25 @@ final class ParticipantWizardController extends Controller
     {
         [$participant, $trip] = $this->resolve((string) $args['token']);
 
+        // Status ocen miejsc - ile w tripie vs ile ten uczestnik ocenil
+        $allPlaces = \App\Models\TripPlace::listForTrip($trip->id);
+        $totalPlaces = count($allPlaces);
+        $myVotes = 0;
+        if ($totalPlaces > 0) {
+            $stats = \App\Models\TripPlaceVote::statsForTrip($trip->id, $participant->id);
+            foreach ($stats as $s) {
+                if (($s['my_score'] ?? null) !== null) $myVotes++;
+            }
+        }
+
         $this->render('participant/welcome', [
             'title'       => $trip->name . ' - powitanie',
             'description' => 'Wypelnij ankiete dla wyjazdu.',
             'trip'        => $trip,
             'participant' => $participant,
             'isAdminEdit' => $this->isAdminEdit(),
+            'placesTotal' => $totalPlaces,
+            'placesMyVotes' => $myVotes,
         ], 'wizard');
     }
 

@@ -15,6 +15,9 @@
     let markers = [];
     let places = [];
     let authors = {};
+    let voteStats = {};   // place_id => {avg, count, my_score}
+    let tripStart = null; // {name, lat, lng} - punkt startowy wyjazdu (zdefiniowany przez admina)
+    let startMarker = null;
     let cfg = null;
     let PlaceCtor = null;
     let PlaceAutocompleteEl = null;
@@ -37,6 +40,9 @@
         try {
             places = JSON.parse(mapEl.getAttribute('data-places') || '[]');
             authors = JSON.parse(mapEl.getAttribute('data-authors') || '{}');
+            voteStats = JSON.parse(mapEl.getAttribute('data-votes') || '{}');
+            const startRaw = mapEl.getAttribute('data-start') || '';
+            tripStart = startRaw !== '' ? JSON.parse(startRaw) : null;
         } catch (e) {
             console.error('[places] cannot parse data attributes', e);
         }
@@ -71,13 +77,75 @@
         setupListListeners();
         setupDetailModal();
         setupLightbox();
+        setupVisitSliders();
+        loadRouteSuggestions();
     };
+
+    function formatVisitFull(vm) {
+        vm = parseInt(vm, 10) || 60;
+        if (vm < 60) return vm + ' min';
+        const h = Math.floor(vm / 60);
+        const m = vm % 60;
+        if (m === 0) return h + 'h';
+        return h + 'h ' + m + 'min';
+    }
+
+    function visitHint(vm) {
+        vm = parseInt(vm, 10) || 60;
+        if (vm <= 30)  return 'photo stop, punkt widokowy';
+        if (vm <= 90)  return 'krótki przystanek';
+        if (vm <= 180) return 'krótkie zwiedzanie';
+        if (vm <= 360) return 'półdniówka';
+        if (vm <= 540) return 'duże zwiedzanie';
+        return 'cały dzień (Plitvice itp.)';
+    }
+
+    function bindVisitSlider(rangeId, displayId, hintId) {
+        const range   = document.getElementById(rangeId);
+        const display = document.getElementById(displayId);
+        const hint    = document.getElementById(hintId);
+        if (!range || !display) return;
+        const update = () => {
+            const v = range.value;
+            display.textContent = formatVisitFull(v);
+            if (hint) hint.textContent = visitHint(v);
+        };
+        range.addEventListener('input', update);
+        update();
+    }
+
+    function setupVisitSliders() {
+        bindVisitSlider('place-visit-minutes', 'place-visit-display', 'place-visit-hint');
+        bindVisitSlider('detail-edit-visit-minutes', 'detail-edit-visit-display', 'detail-edit-visit-hint');
+    }
 
     function renderMarkers() {
         markers.forEach(m => m.setMap(null));
         markers = [];
+        if (startMarker) { startMarker.setMap(null); startMarker = null; }
 
         const bounds = new google.maps.LatLngBounds();
+
+        // Marker startu - stale widoczny gdy admin go ustawil
+        if (tripStart) {
+            startMarker = new google.maps.Marker({
+                position: { lat: parseFloat(tripStart.lat), lng: parseFloat(tripStart.lng) },
+                map: map,
+                title: '🏠 Start wyjazdu: ' + tripStart.name,
+                icon: makeHomeIcon('#1A1A2E'),  // ciemny - wyrozniajacy sie od kolorowych pinezek
+                zIndex: 100,
+            });
+            startMarker.addListener('click', () => {
+                infoWindow.setContent(`<div class="iw-place">
+                    <h4>🏠 Start wyjazdu</h4>
+                    <p style="margin-top:4px;font-size:14px"><strong>${escapeHtml(tripStart.name)}</strong></p>
+                    <p style="margin-top:6px;font-size:12px;color:#666">Punkt z którego ekipa wyjeżdża i wraca. Uwzględniany w propozycjach tras.</p>
+                </div>`);
+                infoWindow.open(map, startMarker);
+            });
+            bounds.extend(startMarker.getPosition());
+        }
+
         for (const p of places) {
             const author = authors[p.participant_id] || { nickname: '?', color: '#6B7280' };
             const initial = (author.nickname || '?').charAt(0).toUpperCase();
@@ -93,9 +161,9 @@
             markers.push(marker);
             bounds.extend(marker.getPosition());
         }
-        if (markers.length > 0) {
+        if (markers.length > 0 || startMarker) {
             map.fitBounds(bounds, 60);
-            if (markers.length === 1) {
+            if (markers.length + (startMarker ? 1 : 0) === 1) {
                 google.maps.event.addListenerOnce(map, 'idle', () => {
                     if (map.getZoom() > 12) map.setZoom(12);
                 });
@@ -234,6 +302,8 @@
                 // ale wewnetrzny input mozna wyczyscic
                 try { autocompleteEl.value = ''; } catch (e) {}
             }
+            // Trigger slidera by display+hint odswiezyl sie po form.reset()
+            document.getElementById('place-visit-minutes')?.dispatchEvent(new Event('input'));
             submitBtn.disabled = true;
         }
 
@@ -326,6 +396,7 @@
                 fd.append('_csrf', cfg.csrf);
                 fd.append('name', finalName);
                 fd.append('description', descInput.value.trim());
+                fd.append('visit_minutes', document.getElementById('place-visit-minutes')?.value || '60');
                 fd.append('lat', hidden.lat.value);
                 fd.append('lng', hidden.lng.value);
                 fd.append('address', hidden.address.value);
@@ -412,6 +483,8 @@
         article.setAttribute('data-place-id', place.id);
         article.setAttribute('data-lat', place.lat);
         article.setAttribute('data-lng', place.lng);
+        const vm = parseInt(place.visit_minutes, 10) || 60;
+        const visitFmt = vm < 60 ? vm + 'min' : (vm % 60 === 0 ? (vm / 60) + 'h' : (vm / 60).toFixed(1).replace('.', ',') + 'h');
         article.innerHTML = `
             <div class="flex items-start gap-2">
                 <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-xs font-bold shrink-0 mt-0.5"
@@ -420,7 +493,13 @@
                     <h4 class="font-semibold text-sm text-ink dark:text-pale truncate">${escapeHtml(place.name)}</h4>
                     ${place.address ? `<p class="text-xs text-mist truncate">${escapeHtml(place.address)}</p>` : ''}
                     ${place.description ? `<p class="text-xs text-ink/70 dark:text-pale/70 mt-1 line-clamp-2">${escapeHtml(place.description)}</p>` : ''}
-                    <div class="mt-2 flex items-center gap-2 text-xs text-mist">
+                    <div class="mt-1.5 flex items-center gap-1.5 text-xs">
+                        <span data-vote-summary class="inline-flex items-center gap-1.5"><span class="text-mist italic">Brak ocen</span></span>
+                        <span class="text-mist">·</span>
+                        <span data-visit-chip class="text-mist">⏱️ ${visitFmt}</span>
+                        <span data-my-score class="ml-auto text-secondary hidden"></span>
+                    </div>
+                    <div class="mt-1.5 flex items-center gap-2 text-xs text-mist">
                         <span>— ${escapeHtml(author.nickname)}</span>
                         ${isMine ? `<button type="button" class="ml-auto text-red-500 hover:text-red-700 transition" data-delete-place="${place.id}" title="Usuń">🗑</button>` : ''}
                     </div>
@@ -465,6 +544,32 @@
 
         closeBtn?.addEventListener('click', closeDetailModal);
         modal.addEventListener('click', (e) => { if (e.target === modal) closeDetailModal(); });
+
+        // Edit button (nazwa + opis) - tylko dla autora
+        document.getElementById('detail-edit-btn')?.addEventListener('click', () => enterEditMode());
+        document.getElementById('detail-edit-cancel')?.addEventListener('click', () => exitEditMode());
+        document.getElementById('detail-edit-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitEdit();
+        });
+
+        // Rating stars (half-star support)
+        document.querySelectorAll('[data-detail-rate]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const score = parseFloat(btn.getAttribute('data-detail-rate'));
+                submitVote(score);
+            });
+            btn.addEventListener('mouseenter', () => {
+                const score = parseFloat(btn.getAttribute('data-detail-rate'));
+                highlightStars(score, true);
+            });
+            btn.addEventListener('mouseleave', () => {
+                renderRatingStars();
+            });
+        });
+        document.getElementById('detail-rating-clear')?.addEventListener('click', () => {
+            submitVoteDelete();
+        });
 
         // Upload zdjęcia
         document.getElementById('upload-image')?.addEventListener('change', (e) => {
@@ -514,6 +619,13 @@
 
         document.getElementById('detail-media').innerHTML = '<p class="text-sm text-mist italic">Ładuję media...</p>';
         document.getElementById('detail-uploader').classList.toggle('hidden', !isMine);
+        document.getElementById('detail-edit-btn')?.classList.toggle('hidden', !isMine);
+
+        // Wyjdz z trybu edycji przy otwarciu (mogliśmy zostać w edit z poprzedniej karty)
+        exitEditMode();
+
+        // Render gwiazdek na podstawie aktualnych voteStats
+        renderRatingStars();
 
         const modal = document.getElementById('detail-modal');
         modal.classList.remove('hidden');
@@ -521,6 +633,119 @@
 
         // Pobierz user media + Google Photos rownolegle
         await loadAllMediaForPlace(placeId, place.google_place_id);
+    }
+
+    // ========================================================================
+    // Rating - gwiazdki + AJAX vote
+    // ========================================================================
+
+    function renderRatingStars() {
+        if (!currentDetailPlaceId) return;
+        const stats = voteStats[currentDetailPlaceId] || { avg: null, count: 0, my_score: null };
+        const my = stats.my_score;
+        highlightStars(my || 0, false);
+
+        // Statystyki po prawej
+        const statsEl = document.getElementById('detail-rating-stats');
+        if (statsEl) {
+            if (stats.avg !== null && stats.count > 0) {
+                statsEl.innerHTML = `<div class="text-base"><strong class="text-amber-500">★ ${stats.avg.toFixed(1).replace('.', ',')}</strong> <span class="text-mist">/ 5</span></div><div class="text-xs text-mist">${stats.count} ${stats.count === 1 ? 'ocena' : (stats.count < 5 ? 'oceny' : 'ocen')}</div>`;
+            } else {
+                statsEl.innerHTML = '<div class="text-xs text-mist italic">Brak ocen</div>';
+            }
+        }
+
+        // Aktualna wartosc obok gwiazdek
+        const current = document.getElementById('detail-current-value');
+        if (current) current.textContent = my ? Number(my).toFixed(1).replace('.', ',') : '';
+
+        const clearBtn = document.getElementById('detail-rating-clear');
+        if (clearBtn) clearBtn.classList.toggle('hidden', my === null);
+    }
+
+    function highlightStars(score, isHover) {
+        // Half-star fill: width procentowy gwiazdek wypelnionych
+        const filled = document.querySelector('#detail-half-stars .stars-filled');
+        if (filled) {
+            const pct = (Number(score) / 5) * 100;
+            filled.style.width = pct + '%';
+        }
+        // Hover: pokaz wartosc obok
+        if (isHover) {
+            const current = document.getElementById('detail-current-value');
+            if (current) current.textContent = score > 0 ? Number(score).toFixed(1).replace('.', ',') : '';
+        }
+    }
+
+    async function submitVote(score) {
+        if (!currentDetailPlaceId) return;
+        try {
+            const fd = new FormData();
+            fd.append('_csrf', cfg.csrf);
+            fd.append('score', String(score));
+            const url = cfg.urls.voteTemplate.replace('ID', currentDetailPlaceId);
+            const r = await fetch(url, { method: 'POST', body: fd });
+            const data = await r.json();
+            if (data.ok && data.stats) {
+                voteStats[currentDetailPlaceId] = data.stats;
+                renderRatingStars();
+                updateListCardVote(currentDetailPlaceId, data.stats);
+            } else {
+                alert(data.error || 'Nie udało się zapisać oceny.');
+            }
+        } catch (e) {
+            alert('Błąd sieci.');
+        }
+    }
+
+    async function submitVoteDelete() {
+        if (!currentDetailPlaceId) return;
+        if (!confirm('Usunąć Twoją ocenę?')) return;
+        try {
+            const fd = new FormData();
+            fd.append('_csrf', cfg.csrf);
+            const url = cfg.urls.voteDeleteTemplate.replace('ID', currentDetailPlaceId);
+            const r = await fetch(url, { method: 'POST', body: fd });
+            const data = await r.json();
+            if (data.ok && data.stats) {
+                voteStats[currentDetailPlaceId] = data.stats;
+                renderRatingStars();
+                updateListCardVote(currentDetailPlaceId, data.stats);
+            } else {
+                alert(data.error || 'Nie udało się usunąć oceny.');
+            }
+        } catch (e) {
+            alert('Błąd sieci.');
+        }
+    }
+
+    // Refresh statystyk w karcie po prawej (bez przeladowania strony)
+    function updateListCardVote(placeId, stats) {
+        const card = document.querySelector(`#places-list article[data-place-id="${placeId}"]`);
+        if (!card) return;
+        // Summary (avg + count)
+        const summary = card.querySelector('[data-vote-summary]');
+        if (summary) {
+            if (stats.avg !== null) {
+                summary.innerHTML =
+                    '<span class="text-amber-400">★</span>' +
+                    '<span class="font-semibold text-ink dark:text-pale">' + Number(stats.avg).toFixed(1).replace('.', ',') + '</span>' +
+                    '<span class="text-mist">(' + stats.count + ')</span>';
+            } else {
+                summary.innerHTML = '<span class="text-mist italic">Brak ocen</span>';
+            }
+        }
+        // Moja ocena
+        const my = card.querySelector('[data-my-score]');
+        if (my) {
+            if (stats.my_score !== null) {
+                my.textContent = 'Twoja: ' + Number(stats.my_score).toFixed(1).replace('.', ',') + '★';
+                my.classList.remove('hidden');
+            } else {
+                my.textContent = '';
+                my.classList.add('hidden');
+            }
+        }
     }
 
     async function loadAllMediaForPlace(placeId, googlePlaceId) {
@@ -674,38 +899,96 @@
 
     async function uploadMedia(file, type, inputEl) {
         if (!currentDetailPlaceId) return;
-        const status = document.getElementById('upload-status');
-        status.classList.remove('hidden', 'text-red-500', 'text-secondary');
-        status.classList.add('text-mist');
-        status.textContent = 'Wgrywam ' + (type === 'image' ? 'zdjęcie' : 'wideo') + '...';
+        const box       = document.getElementById('upload-status');
+        const label     = document.getElementById('upload-label');
+        const percentEl = document.getElementById('upload-percent');
+        const bar       = document.getElementById('upload-progress-bar');
+
+        if (!box || !label || !bar) return;
+
+        // Reset UI
+        box.classList.remove('hidden');
+        bar.classList.remove('bg-secondary', 'bg-red-500');
+        bar.classList.add('bg-primary-deep');
+        bar.style.width = '0%';
+        percentEl.textContent = '0%';
+        label.textContent = `Wgrywam ${type === 'image' ? 'zdjęcie' : 'wideo'} (${formatBytes(file.size)})`;
+
+        const fd = new FormData();
+        fd.append('_csrf', cfg.csrf);
+        fd.append('type', type);
+        fd.append('file', file);
+
+        const url = cfg.urls.mediaUploadTemplate.replace('ID', currentDetailPlaceId);
 
         try {
-            const fd = new FormData();
-            fd.append('_csrf', cfg.csrf);
-            fd.append('type', type);
-            fd.append('file', file);
+            const data = await xhrUpload(url, fd, (loaded, total) => {
+                const pct = total > 0 ? (loaded / total) * 100 : 0;
+                bar.style.width = pct + '%';
+                percentEl.textContent = Math.floor(pct) + '%';
+                if (pct >= 99) {
+                    label.textContent = 'Przetwarzam na serwerze...';
+                    bar.classList.remove('animate-pulse');
+                    bar.classList.add('animate-pulse');
+                }
+            });
 
-            const url = cfg.urls.mediaUploadTemplate.replace('ID', currentDetailPlaceId);
-            const r = await fetch(url, { method: 'POST', body: fd });
-            const data = await r.json();
-
-            if (data.ok) {
-                status.classList.remove('text-mist');
-                status.classList.add('text-secondary');
-                status.textContent = '✓ Wgrano!';
-                setTimeout(() => status.classList.add('hidden'), 2000);
+            if (data && data.ok) {
+                bar.style.width = '100%';
+                percentEl.textContent = '100%';
+                bar.classList.remove('animate-pulse', 'bg-primary-deep');
+                bar.classList.add('bg-secondary');
+                label.textContent = '✓ Wgrano!';
+                setTimeout(() => box.classList.add('hidden'), 1800);
                 await loadMediaForPlace(currentDetailPlaceId);
             } else {
-                status.classList.remove('text-mist');
-                status.classList.add('text-red-500');
-                status.textContent = '⚠ ' + (data.error || 'Błąd uploadu');
+                bar.classList.remove('animate-pulse', 'bg-primary-deep');
+                bar.classList.add('bg-red-500');
+                label.textContent = '⚠ ' + ((data && data.error) || 'Błąd uploadu');
             }
         } catch (e) {
-            status.classList.add('text-red-500');
-            status.textContent = '⚠ Błąd sieci';
+            bar.classList.remove('animate-pulse', 'bg-primary-deep');
+            bar.classList.add('bg-red-500');
+            label.textContent = '⚠ ' + (e?.message || 'Błąd sieci');
         } finally {
-            inputEl.value = ''; // pozwala wybrac ten sam plik ponownie
+            inputEl.value = '';
         }
+    }
+
+    /**
+     * Upload przez XHR z prawdziwym progress callback (fetch nie wspiera upload progress).
+     */
+    function xhrUpload(url, formData, onProgress) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', url, true);
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) onProgress(e.loaded, e.total);
+            });
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try { resolve(JSON.parse(xhr.responseText)); }
+                    catch (e) { reject(new Error('Nieprawidłowa odpowiedź serwera')); }
+                } else {
+                    // Spróbuj rozparsować błąd JSON z odpowiedzi
+                    let err = 'HTTP ' + xhr.status;
+                    try {
+                        const j = JSON.parse(xhr.responseText);
+                        if (j && j.error) err = j.error;
+                    } catch (e) {}
+                    reject(new Error(err));
+                }
+            });
+            xhr.addEventListener('error', () => reject(new Error('Błąd sieci')));
+            xhr.addEventListener('abort', () => reject(new Error('Anulowano upload')));
+            xhr.send(formData);
+        });
+    }
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
     }
 
     async function submitLink() {
@@ -860,6 +1143,349 @@
 
     function escapeAttr(s) {
         return String(s ?? '').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+    }
+
+    // ========================================================================
+    // ETAP 4: Propozycje tras - render kart + rysowanie tras na mapie z OSRM
+    // ========================================================================
+
+    let routesCache = [];
+    let activeRouteMarkers = [];   // numerowane markery na trasie
+    let activeRoutePolyline = null;
+
+    async function loadRouteSuggestions() {
+        const list = document.getElementById('routes-list');
+        if (!list || !cfg.urls.routes) return;
+        try {
+            const r = await fetch(cfg.urls.routes);
+            const data = await r.json();
+            if (data.ok && Array.isArray(data.routes)) {
+                routesCache = data.routes;
+                renderRoutesList();
+            } else {
+                list.innerHTML = '<p class="text-mist italic text-sm col-span-full">Brak propozycji.</p>';
+            }
+        } catch (e) {
+            list.innerHTML = '<p class="text-red-500 text-sm col-span-full">Błąd ładowania propozycji.</p>';
+        }
+    }
+
+    function renderRoutesList() {
+        const list = document.getElementById('routes-list');
+        if (!list) return;
+        if (routesCache.length === 0) {
+            list.innerHTML = '<p class="text-mist italic text-sm col-span-full">Brak propozycji. Dodaj więcej miejsc (min 2) i oceń je ★3 lub wyżej żeby zobaczyć propozycje tras.</p>';
+            return;
+        }
+        const colors = ['#FF6B35', '#2EC4B6', '#FFD23F', '#C2410C', '#0EA5E9'];
+        list.innerHTML = routesCache.map((route, idx) => {
+            const color = colors[idx % colors.length];
+            const placesShort = route.places.slice(0, 5).map((p, i) => `${i+1}. ${escapeHtml(p.name)}`).join('<br>');
+            const more = route.places.length > 5 ? `<br>+${route.places.length - 5} więcej` : '';
+            const fromBadge = route.start ? `<span>🏠 z ${escapeHtml(route.start.name)}</span>` : '';
+            return `<div class="rounded-2xl border-2 border-mist/15 bg-paper dark:bg-deep p-5 hover:border-primary/30 transition" data-route-idx="${idx}">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <h3 class="font-display font-bold text-lg text-ink dark:text-pale">${escapeHtml(route.name)}</h3>
+                    <span class="w-4 h-4 rounded-full shrink-0 mt-1.5" style="background:${color}"></span>
+                </div>
+                <div class="flex flex-wrap gap-3 text-xs text-mist mb-3">
+                    ${fromBadge}
+                    <span>📍 ${route.places.length} miejsc</span>
+                    <span>🛣️ ~${route.distance_km} km</span>
+                    <span>⭐ ${route.avg_score.toFixed(1).replace('.', ',')}</span>
+                </div>
+                <div class="text-sm text-ink/80 dark:text-pale/80 mb-3 leading-relaxed">${placesShort}${more}</div>
+                <button type="button" data-show-route="${idx}"
+                        class="w-full px-3 py-2 rounded-full text-white font-semibold text-sm hover:scale-105 transition"
+                        style="background:${color}">
+                    Pokaż na mapie
+                </button>
+            </div>`;
+        }).join('');
+
+        list.querySelectorAll('[data-show-route]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-show-route'), 10);
+                showRouteOnMap(idx, colors[idx % colors.length]);
+            });
+        });
+
+        document.getElementById('routes-clear')?.addEventListener('click', clearRoute);
+    }
+
+    async function showRouteOnMap(routeIdx, color) {
+        const route = routesCache[routeIdx];
+        if (!route) return;
+        clearRoute();
+
+        markers.forEach(m => m.setOpacity(0.25));
+
+        // Ukryj permanent startMarker - bedzie route-owy w jego kolorze
+        if (startMarker) startMarker.setMap(null);
+
+        const bounds = new google.maps.LatLngBounds();
+
+        // Marker startowy (jak istnieje) z ikona domku
+        if (route.start) {
+            const routeStartMarker = new google.maps.Marker({
+                position: { lat: parseFloat(route.start.lat), lng: parseFloat(route.start.lng) },
+                map: map,
+                icon: makeHomeIcon(color),
+                zIndex: 999,
+                title: '🏠 Start: ' + route.start.name,
+            });
+            routeStartMarker.addListener('click', () => {
+                infoWindow.setContent(`<div class="iw-place"><h4>🏠 Start trasy</h4>
+                    <p style="margin-top:4px;font-size:14px"><strong>${escapeHtml(route.start.name)}</strong></p>
+                    <p style="margin-top:6px;font-size:13px;color:#666">Punkt wyjazdu ekipy. Stąd zaczynamy trasę "${escapeHtml(route.name)}".</p></div>`);
+                infoWindow.open(map, routeStartMarker);
+            });
+            activeRouteMarkers.push(routeStartMarker);
+            bounds.extend(routeStartMarker.getPosition());
+        }
+
+        // Numerowane markery
+        route.places.forEach((p, i) => {
+            const marker = new google.maps.Marker({
+                position: { lat: parseFloat(p.lat), lng: parseFloat(p.lng) },
+                map: map,
+                label: { text: String(i + 1), color: 'white', fontWeight: '700', fontSize: '13px' },
+                icon: makeNumberedIcon(color),
+                zIndex: 1000 + i,
+            });
+            marker.addListener('click', () => {
+                infoWindow.setContent(`<div class="iw-place"><h4>${escapeHtml(p.name)}</h4>
+                    <p style="font-size:12px;color:#666">${escapeHtml(p.address || '')}</p>
+                    <p style="margin-top:6px;font-size:13px"><strong>Punkt ${i+1}</strong> trasy "${escapeHtml(route.name)}"</p></div>`);
+                infoWindow.open(map, marker);
+            });
+            activeRouteMarkers.push(marker);
+            bounds.extend(marker.getPosition());
+        });
+
+        // Polyline - z punktem startowym jeśli istnieje + powrót do startu (round trip)
+        const pathPoints = route.start
+            ? [route.start, ...route.places, route.start]
+            : route.places;
+        if (pathPoints.length >= 2) {
+            await drawRoutePolyline(pathPoints, color);
+        }
+
+        try { map.fitBounds(bounds, 80); } catch (e) {}
+
+        document.getElementById('routes-clear')?.classList.remove('hidden');
+        document.getElementById('places-map')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function makeHomeIcon(color) {
+        // Ikona domu z kolorem trasy - dla punktu startowego
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="56" viewBox="0 0 44 56">
+            <path d="M22 0C10 0 0 10 0 22c0 16 22 34 22 34s22-18 22-34C44 10 34 0 22 0z" fill="${color}" stroke="white" stroke-width="3"/>
+            <path d="M22 11 L33 21 L31 21 L31 31 L24 31 L24 24 L20 24 L20 31 L13 31 L13 21 L11 21 Z" fill="white"/>
+        </svg>`;
+        return {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+            scaledSize: new google.maps.Size(44, 56),
+            anchor: new google.maps.Point(22, 56),
+        };
+    }
+
+    function makeNumberedIcon(color) {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="56" viewBox="0 0 44 56">
+            <path d="M22 0C10 0 0 10 0 22c0 16 22 34 22 34s22-18 22-34C44 10 34 0 22 0z" fill="${color}" stroke="white" stroke-width="3"/>
+        </svg>`;
+        return {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+            scaledSize: new google.maps.Size(44, 56),
+            anchor: new google.maps.Point(22, 56),
+            labelOrigin: new google.maps.Point(22, 21),
+        };
+    }
+
+    async function drawRoutePolyline(places, color) {
+        // Skladaj URL OSRM z par koordynatow
+        const coords = places.map(p => `${p.lng},${p.lat}`).join(';');
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+
+        try {
+            const r = await fetch(osrmUrl);
+            const data = await r.json();
+            if (data.code === 'Ok' && data.routes && data.routes[0]) {
+                const geojson = data.routes[0].geometry;
+                const path = geojson.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+                activeRoutePolyline = new google.maps.Polyline({
+                    path,
+                    geodesic: false,
+                    strokeColor: color,
+                    strokeOpacity: 0.85,
+                    strokeWeight: 4,
+                    map: map,
+                });
+                return;
+            }
+        } catch (e) {
+            console.warn('[places] OSRM failed, using straight line', e);
+        }
+
+        // Fallback - linia prosta przez kolejne punkty
+        const path = places.map(p => ({ lat: parseFloat(p.lat), lng: parseFloat(p.lng) }));
+        activeRoutePolyline = new google.maps.Polyline({
+            path,
+            geodesic: true,
+            strokeColor: color,
+            strokeOpacity: 0.6,
+            strokeWeight: 3,
+            map: map,
+        });
+    }
+
+    function clearRoute() {
+        activeRouteMarkers.forEach(m => m.setMap(null));
+        activeRouteMarkers = [];
+        if (activeRoutePolyline) {
+            activeRoutePolyline.setMap(null);
+            activeRoutePolyline = null;
+        }
+        // Przywroc opacity oryginalnym markerom
+        markers.forEach(m => m.setOpacity(1.0));
+        // Przywroc permanent marker startu (byl ukryty przy pokazywaniu trasy)
+        if (startMarker && tripStart) startMarker.setMap(map);
+        document.getElementById('routes-clear')?.classList.add('hidden');
+    }
+
+    // ========================================================================
+    // Edycja nazwy + opisu istniejacego miejsca (autor only)
+    // ========================================================================
+
+    function enterEditMode() {
+        if (!currentDetailPlaceId) return;
+        const place = places.find(p => p.id === currentDetailPlaceId);
+        if (!place) return;
+
+        document.getElementById('detail-name').classList.add('hidden');
+        document.getElementById('detail-description').classList.add('hidden');
+        document.getElementById('detail-edit-btn')?.classList.add('hidden');
+        // Ukryj resztę sekcji - tylko form do edycji powinien być widoczny
+        document.getElementById('detail-rating')?.classList.add('hidden');
+        document.getElementById('detail-media')?.classList.add('hidden');
+        document.getElementById('detail-uploader')?.classList.add('hidden');
+
+        const form = document.getElementById('detail-edit-form');
+        form.classList.remove('hidden');
+        document.getElementById('detail-edit-name').value = place.name || '';
+        document.getElementById('detail-edit-description').value = place.description || '';
+        const visitSel = document.getElementById('detail-edit-visit-minutes');
+        if (visitSel) {
+            visitSel.value = String(place.visit_minutes || 60);
+            visitSel.dispatchEvent(new Event('input'));
+        }
+        document.getElementById('detail-edit-error').classList.add('hidden');
+        setTimeout(() => document.getElementById('detail-edit-name')?.focus(), 50);
+    }
+
+    function exitEditMode() {
+        document.getElementById('detail-name').classList.remove('hidden');
+        document.getElementById('detail-description').classList.remove('hidden');
+        document.getElementById('detail-edit-form')?.classList.add('hidden');
+        // Pokaż z powrotem wszystkie sekcje
+        document.getElementById('detail-rating')?.classList.remove('hidden');
+        document.getElementById('detail-media')?.classList.remove('hidden');
+        // Uploader pokazujemy tylko gdy moja karta (oryginalna logika)
+        const place = places.find(p => p.id === currentDetailPlaceId);
+        const isMine = place && place.participant_id === cfg.myParticipantId;
+        document.getElementById('detail-uploader')?.classList.toggle('hidden', !isMine);
+        document.getElementById('detail-edit-btn')?.classList.toggle('hidden', !isMine);
+        document.getElementById('detail-edit-error')?.classList.add('hidden');
+    }
+
+    async function submitEdit() {
+        if (!currentDetailPlaceId) return;
+        const name = document.getElementById('detail-edit-name').value.trim();
+        const description = document.getElementById('detail-edit-description').value.trim();
+        const errorBox = document.getElementById('detail-edit-error');
+        errorBox.classList.add('hidden');
+
+        if (name === '') {
+            errorBox.textContent = 'Podaj nazwę.';
+            errorBox.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const fd = new FormData();
+            fd.append('_csrf', cfg.csrf);
+            fd.append('name', name);
+            fd.append('description', description);
+            fd.append('visit_minutes', document.getElementById('detail-edit-visit-minutes')?.value || '60');
+            const url = cfg.urls.editTemplate.replace('ID', currentDetailPlaceId);
+            const r = await fetch(url, { method: 'POST', body: fd });
+            const data = await r.json();
+            if (data.ok && data.place) {
+                // Update lokalna kopia
+                const idx = places.findIndex(p => p.id === currentDetailPlaceId);
+                if (idx !== -1) places[idx] = data.place;
+                // Update widoki
+                document.getElementById('detail-name').textContent = data.place.name;
+                document.getElementById('detail-description').textContent = data.place.description || '';
+                // Update karta po prawej (lista)
+                updateListCardMeta(data.place);
+                // Update marker title
+                const marker = markers.find(m => m._place && m._place.id === currentDetailPlaceId);
+                if (marker) {
+                    marker._place = data.place;
+                    marker.setTitle(data.place.name);
+                }
+                exitEditMode();
+            } else {
+                errorBox.textContent = data.error || 'Nie udało się zapisać.';
+                errorBox.classList.remove('hidden');
+            }
+        } catch (e) {
+            errorBox.textContent = 'Błąd sieci.';
+            errorBox.classList.remove('hidden');
+        }
+    }
+
+    function formatVisitMinutes(vm) {
+        vm = parseInt(vm, 10) || 60;
+        if (vm < 60) return vm + 'min';
+        if (vm % 60 === 0) return (vm / 60) + 'h';
+        return (vm / 60).toFixed(1).replace('.', ',') + 'h';
+    }
+
+    function updateListCardMeta(place) {
+        const card = document.querySelector(`#places-list article[data-place-id="${place.id}"]`);
+        if (!card) return;
+
+        // Nazwa
+        const nameEl = card.querySelector('h4');
+        if (nameEl) nameEl.textContent = place.name;
+
+        // Opis: dodaj/aktualizuj/usun
+        const innerCol = card.querySelector('.flex-1.min-w-0');
+        let descEl = card.querySelector('p.line-clamp-2');
+        if (place.description) {
+            if (descEl) {
+                descEl.textContent = place.description;
+                descEl.classList.remove('hidden');
+            } else if (innerCol) {
+                // Wstaw po adresie (lub po h4 jezeli adres nie istnieje)
+                const addrEl = innerCol.querySelector('h4 + p.text-mist');
+                const newDesc = document.createElement('p');
+                newDesc.className = 'text-xs text-ink/70 dark:text-pale/70 mt-1 line-clamp-2';
+                newDesc.textContent = place.description;
+                if (addrEl) addrEl.insertAdjacentElement('afterend', newDesc);
+                else nameEl.insertAdjacentElement('afterend', newDesc);
+            }
+        } else if (descEl) {
+            descEl.remove();
+        }
+
+        // Czas zwiedzania
+        const visitChip = card.querySelector('[data-visit-chip]');
+        if (visitChip) {
+            visitChip.textContent = '⏱️ ' + formatVisitMinutes(place.visit_minutes);
+        }
     }
 
     // Eksportuj do globalnego namespace zeby InfoWindow / lista mogly trigger'owac

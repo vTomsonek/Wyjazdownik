@@ -55,6 +55,36 @@ if ($trip->bannerImage) {
             </div>
         <?php endif; ?>
 
+        <?php
+        $placesTotal = (int) ($placesTotal ?? 0);
+        $placesMyVotes = (int) ($placesMyVotes ?? 0);
+        $placesMissing = $placesTotal - $placesMyVotes;
+        ?>
+        <?php if ($isCompleted && $placesTotal > 0): ?>
+            <?php if ($placesMissing > 0): ?>
+                <a href="<?= e(url('/p/' . $participant->accessToken . '/atrakcje/oceniaj')) ?>"
+                   class="mt-6 inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-red-100 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-950/60 hover:scale-105 transition">
+                    <span class="text-2xl">⚠️</span>
+                    <div class="text-left">
+                        <div class="font-semibold text-red-700 dark:text-red-300">
+                            Masz <?= $placesMissing ?> <?= $placesMissing === 1 ? 'miejsce' : ($placesMissing < 5 ? 'miejsca' : 'miejsc') ?> do oceny →
+                        </div>
+                        <div class="text-xs text-red-600/80 dark:text-red-400/80">
+                            Oceniłeś <?= $placesMyVotes ?> z <?= $placesTotal ?> atrakcji. Kliknij żeby ocenić jednym przyciskiem.
+                        </div>
+                    </div>
+                </a>
+            <?php elseif ($placesTotal > 0): ?>
+                <div class="mt-6 inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-secondary/15 border-2 border-secondary/30">
+                    <span class="text-2xl">✓</span>
+                    <div class="text-left">
+                        <div class="font-semibold text-secondary">Wszystko ocenione!</div>
+                        <div class="text-xs text-mist">Oceniłeś <?= $placesTotal ?> z <?= $placesTotal ?> atrakcji ekipy.</div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <div class="mt-8">
             <?php if ($isCompleted): ?>
                 <p class="text-mist mb-4">

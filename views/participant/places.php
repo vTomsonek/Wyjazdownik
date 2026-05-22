@@ -14,6 +14,7 @@ use App\Helpers\Csrf;
 $csrfToken = Csrf::token();
 $placesJson = json_encode(array_map(static fn($p) => $p->toArray(), $places), JSON_UNESCAPED_UNICODE);
 $authorsJson = json_encode($authors, JSON_UNESCAPED_UNICODE);
+$voteStatsJson = json_encode($voteStats ?? [], JSON_UNESCAPED_UNICODE);
 $hasApiKey = $googleMapsApiKey !== '';
 ?>
 
@@ -74,9 +75,20 @@ $hasApiKey = $googleMapsApiKey !== '';
     <!-- Mapa + lista -->
     <div class="grid lg:grid-cols-[1fr_380px] gap-4">
         <div class="rounded-2xl overflow-hidden border-2 border-mist/15 bg-paper dark:bg-deep">
+            <?php
+            $startJson = ($trip->startLat !== null && $trip->startLng !== null)
+                ? json_encode([
+                    'name' => $trip->startName ?? 'Punkt startowy',
+                    'lat'  => $trip->startLat,
+                    'lng'  => $trip->startLng,
+                ], JSON_UNESCAPED_UNICODE)
+                : '';
+            ?>
             <div id="places-map"
                  data-places='<?= e($placesJson) ?>'
                  data-authors='<?= e($authorsJson) ?>'
+                 data-votes='<?= e($voteStatsJson) ?>'
+                 data-start='<?= e($startJson) ?>'
                  data-my-color="<?= e($myColor) ?>"
                  style="height: 75vh; min-height: 520px;"></div>
         </div>
@@ -96,6 +108,7 @@ $hasApiKey = $googleMapsApiKey !== '';
                     <?php foreach ($places as $p):
                         $author = $authors[$p->participantId] ?? ['nickname' => '?', 'color' => '#6B7280', 'avatar' => null];
                         $isMine = $p->participantId === $participant->id;
+                        $vs = $voteStats[$p->id] ?? ['avg' => null, 'count' => 0, 'my_score' => null];
                     ?>
                     <article class="rounded-xl border border-mist/15 p-3 hover:border-primary/30 transition cursor-pointer"
                              data-place-id="<?= e($p->id) ?>"
@@ -114,7 +127,29 @@ $hasApiKey = $googleMapsApiKey !== '';
                                 <?php if ($p->description): ?>
                                     <p class="text-xs text-ink/70 dark:text-pale/70 mt-1 line-clamp-2"><?= e($p->description) ?></p>
                                 <?php endif; ?>
-                                <div class="mt-2 flex items-center gap-2 text-xs text-mist">
+                                <!-- Statystyki ocen + czas zwiedzania -->
+                                <div class="mt-1.5 flex items-center gap-1.5 text-xs">
+                                    <span data-vote-summary class="inline-flex items-center gap-1.5">
+                                        <?php if ($vs['avg'] !== null): ?>
+                                            <span class="text-amber-400">★</span>
+                                            <span class="font-semibold text-ink dark:text-pale"><?= number_format((float) $vs['avg'], 1, ',', '') ?></span>
+                                            <span class="text-mist">(<?= $vs['count'] ?>)</span>
+                                        <?php else: ?>
+                                            <span class="text-mist italic">Brak ocen</span>
+                                        <?php endif; ?>
+                                    </span>
+                                    <span class="text-mist">·</span>
+                                    <span data-visit-chip class="text-mist">⏱️ <?php
+                                        $vm = $p->visitMinutes;
+                                        echo $vm < 60 ? $vm . 'min' : (
+                                            $vm % 60 === 0 ? ($vm / 60) . 'h' : sprintf('%.1fh', $vm / 60)
+                                        );
+                                    ?></span>
+                                    <span data-my-score class="ml-auto text-secondary <?= $vs['my_score'] === null ? 'hidden' : '' ?>">
+                                        <?= $vs['my_score'] !== null ? 'Twoja: ' . number_format((float) $vs['my_score'], 1, ',', '') . '★' : '' ?>
+                                    </span>
+                                </div>
+                                <div class="mt-1.5 flex items-center gap-2 text-xs text-mist">
                                     <span>— <?= e($author['nickname']) ?></span>
                                     <?php if ($isMine): ?>
                                         <button type="button" class="ml-auto text-red-500 hover:text-red-700 transition"
@@ -131,6 +166,24 @@ $hasApiKey = $googleMapsApiKey !== '';
             </div>
         </aside>
     </div>
+
+    <!-- Propozycje tras - algorytm klastrowania + TSP -->
+    <section id="routes-section" class="mt-8">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 class="font-display font-bold text-2xl text-ink dark:text-pale">
+                🚗 Propozycje tras
+            </h2>
+            <button type="button" id="routes-clear" class="hidden text-sm text-mist hover:text-primary transition">
+                ← Pokaż wszystkie miejsca
+            </button>
+        </div>
+        <p class="text-mist text-sm mb-4">
+            Algorytm grupuje top-ocenione miejsca po regionach geograficznych. Kliknij propozycję żeby zobaczyć trasę na mapie.
+        </p>
+        <div id="routes-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <p class="text-mist italic text-sm col-span-full">Ładuję propozycje...</p>
+        </div>
+    </section>
 
     <!-- Modal dodawania miejsca -->
     <div id="add-place-modal" class="fixed inset-0 z-[9999] hidden bg-black/60 backdrop-blur-sm items-center justify-center p-4">
@@ -170,6 +223,25 @@ $hasApiKey = $googleMapsApiKey !== '';
                                   class="w-full px-4 py-2.5 rounded-xl bg-cream dark:bg-night border-2 border-mist/20 focus:border-primary text-ink dark:text-pale outline-none transition resize-y"></textarea>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-ink dark:text-pale mb-1.5">
+                            ⏱️ Ile czasu zajmie zwiedzanie?
+                        </label>
+                        <p class="text-xs text-mist mb-3">Algorytm użyje tego do oszacowania długości trasy.</p>
+                        <div class="rounded-xl bg-cream dark:bg-night border-2 border-mist/20 p-4">
+                            <div class="flex items-baseline justify-between gap-3 mb-3">
+                                <span id="place-visit-display" class="font-display font-bold text-2xl text-primary">1h</span>
+                                <span id="place-visit-hint" class="text-xs text-mist text-right">krótki przystanek</span>
+                            </div>
+                            <input type="range" id="place-visit-minutes"
+                                   min="15" max="720" step="15" value="60"
+                                   class="w-full accent-primary cursor-pointer">
+                            <div class="flex justify-between mt-1.5 text-[10px] text-mist">
+                                <span>15min</span><span>1h</span><span>4h</span><span>8h</span><span>12h</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Hidden fields -->
                     <input type="hidden" id="place-lat">
                     <input type="hidden" id="place-lng">
@@ -202,18 +274,99 @@ $hasApiKey = $googleMapsApiKey !== '';
 
     <!-- Modal szczegolow miejsca (z galeria/media/linki/upload) -->
     <div id="detail-modal" class="fixed inset-0 z-[9999] hidden bg-black/70 backdrop-blur-sm items-center justify-center p-4">
-        <div class="bg-paper dark:bg-deep rounded-2xl shadow-pop-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <div class="flex items-start justify-between mb-4 gap-3">
+        <div class="bg-paper dark:bg-deep rounded-2xl shadow-pop-lg max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <!-- Sticky header - cały czas widoczny -->
+            <div class="px-6 pt-6 pb-4 border-b border-mist/15 shrink-0">
+                <div class="flex items-start justify-between gap-3">
                     <div class="flex-1 min-w-0">
                         <h3 id="detail-name" class="font-display font-bold text-2xl text-ink dark:text-pale"></h3>
                         <p id="detail-address" class="text-sm text-mist mt-1"></p>
                         <p id="detail-author" class="text-xs text-mist mt-1.5"></p>
                     </div>
-                    <button type="button" id="detail-close" class="text-mist hover:text-primary transition text-3xl leading-none shrink-0">×</button>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button type="button" id="detail-edit-btn"
+                                class="hidden w-10 h-10 flex items-center justify-center rounded-full text-mist hover:text-primary hover:bg-mist/10 transition"
+                                title="Edytuj nazwę i opis">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button type="button" id="detail-close"
+                                class="w-10 h-10 flex items-center justify-center rounded-full text-mist hover:text-primary hover:bg-mist/10 transition leading-none">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+            </div>
 
+            <!-- Scrollable body -->
+            <div class="px-6 py-5 overflow-y-auto flex-1 scroll-thin">
+
+                <!-- View mode: opis jako paragraf -->
                 <p id="detail-description" class="text-ink dark:text-pale leading-relaxed mb-5 whitespace-pre-line"></p>
+
+                <!-- Edit mode (initially hidden) - form do edycji nazwy/opisu -->
+                <form id="detail-edit-form" class="hidden mb-5 space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-mist mb-1">Nazwa</label>
+                        <input type="text" id="detail-edit-name" maxlength="200" required
+                               class="w-full px-3 py-2 rounded-lg bg-cream dark:bg-night border-2 border-mist/20 focus:border-primary text-ink dark:text-pale outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-mist mb-1">Opis</label>
+                        <textarea id="detail-edit-description" maxlength="2000" rows="4"
+                                  placeholder="Czemu warto tu pojechać?"
+                                  class="w-full px-3 py-2 rounded-lg bg-cream dark:bg-night border-2 border-mist/20 focus:border-primary text-ink dark:text-pale outline-none transition resize-y"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-mist mb-2">⏱️ Czas zwiedzania</label>
+                        <div class="rounded-lg bg-cream dark:bg-night border-2 border-mist/20 p-3">
+                            <div class="flex items-baseline justify-between gap-3 mb-2">
+                                <span id="detail-edit-visit-display" class="font-display font-bold text-xl text-primary">1h</span>
+                                <span id="detail-edit-visit-hint" class="text-[11px] text-mist text-right">krótki przystanek</span>
+                            </div>
+                            <input type="range" id="detail-edit-visit-minutes"
+                                   min="15" max="720" step="15" value="60"
+                                   class="w-full accent-primary cursor-pointer">
+                            <div class="flex justify-between mt-1 text-[10px] text-mist">
+                                <span>15min</span><span>1h</span><span>4h</span><span>8h</span><span>12h</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="detail-edit-error" class="hidden p-2.5 rounded-lg bg-red-100 dark:bg-red-950/40 border border-red-300 text-sm text-red-700"></div>
+                    <div class="flex gap-2">
+                        <button type="button" id="detail-edit-cancel" class="flex-1 px-4 py-2 rounded-lg bg-mist/15 text-ink dark:text-pale font-medium hover:bg-mist/25 transition">Anuluj</button>
+                        <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-primary-deep text-white font-semibold hover:bg-primary transition">Zapisz</button>
+                    </div>
+                </form>
+
+                <!-- Sekcja oceniania (half-star support) -->
+                <div id="detail-rating" class="mb-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                            <h4 class="font-semibold text-sm text-ink dark:text-pale mb-1">Czy chcesz tu pojechać?</h4>
+                            <p class="text-xs text-mist">Klik lewa połowa gwiazdki = .5, prawa = pełna (0.5 - 5.0).</p>
+                        </div>
+                        <div id="detail-rating-stats" class="text-sm text-mist text-right"></div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 flex-wrap">
+                        <div id="detail-half-stars" class="half-stars relative inline-block text-3xl leading-none">
+                            <span class="stars-empty text-amber-300/30 select-none">★★★★★</span>
+                            <span class="stars-filled absolute top-0 left-0 text-amber-400 overflow-hidden whitespace-nowrap select-none" style="width: 0%; transition: width 0.15s;">★★★★★</span>
+                            <div class="zones absolute top-0 left-0 w-full h-full flex">
+                                <?php for ($i = 1; $i <= 10; $i++): $val = $i / 2; ?>
+                                    <button type="button" data-detail-rate="<?= $val ?>" class="flex-1 cursor-pointer bg-transparent border-0 p-0" title="<?= $val ?>"></button>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                        <span id="detail-current-value" class="ml-2 text-base font-semibold text-amber-500 min-w-[36px]"></span>
+                        <button type="button" id="detail-rating-clear" class="ml-3 text-xs text-mist hover:text-red-500 transition hidden">Usuń moją ocenę</button>
+                    </div>
+                </div>
 
                 <!-- Galeria mediow -->
                 <div id="detail-media" class="space-y-5">
@@ -235,7 +388,7 @@ $hasApiKey = $googleMapsApiKey !== '';
                         <label class="cursor-pointer flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-mist/30 hover:border-primary/50 hover:bg-primary/5 transition">
                             <span class="text-2xl">🎬</span>
                             <span class="text-sm font-medium text-ink dark:text-pale">Wideo</span>
-                            <span class="text-xs text-mist">max 1 sztuka, 50MB</span>
+                            <span class="text-xs text-mist">max 3 sztuki, 50MB</span>
                             <input type="file" id="upload-video" accept="video/mp4,video/webm,video/quicktime" class="hidden">
                         </label>
                         <!-- Dodaj link -->
@@ -246,7 +399,16 @@ $hasApiKey = $googleMapsApiKey !== '';
                             <span class="text-xs text-mist">Booking, YouTube, blog</span>
                         </button>
                     </div>
-                    <div id="upload-status" class="mt-3 text-sm hidden"></div>
+                    <!-- Progress bar uploadu -->
+                    <div id="upload-status" class="mt-4 hidden">
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <span id="upload-label" class="text-ink dark:text-pale font-medium"></span>
+                            <span id="upload-percent" class="text-mist font-mono">0%</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-mist/15 rounded-full overflow-hidden">
+                            <div id="upload-progress-bar" class="h-full bg-primary-deep transition-all duration-200 ease-out" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -299,6 +461,10 @@ $hasApiKey = $googleMapsApiKey !== '';
                 mediaUploadTemplate: <?= json_encode(url('/p/' . $participant->accessToken . '/places/ID/media/upload'), JSON_UNESCAPED_SLASHES) ?>,
                 mediaLinkTemplate: <?= json_encode(url('/p/' . $participant->accessToken . '/places/ID/media/link'), JSON_UNESCAPED_SLASHES) ?>,
                 mediaDeleteTemplate: <?= json_encode(url('/p/' . $participant->accessToken . '/places/ID/media/MID/delete'), JSON_UNESCAPED_SLASHES) ?>,
+                editTemplate: <?= json_encode(url('/p/' . $participant->accessToken . '/places/ID/edit'), JSON_UNESCAPED_SLASHES) ?>,
+                voteTemplate: <?= json_encode(url('/p/' . $participant->accessToken . '/places/ID/vote'), JSON_UNESCAPED_SLASHES) ?>,
+                voteDeleteTemplate: <?= json_encode(url('/p/' . $participant->accessToken . '/places/ID/vote/delete'), JSON_UNESCAPED_SLASHES) ?>,
+                routes: <?= json_encode(url('/p/' . $participant->accessToken . '/routes'), JSON_UNESCAPED_SLASHES) ?>,
                 assetBase: <?= json_encode(rtrim(env('APP_URL', ''), '/') . '/', JSON_UNESCAPED_SLASHES) ?>,
             },
         };

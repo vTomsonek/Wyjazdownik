@@ -29,6 +29,9 @@ $val = static function (string $field, mixed $default = '') use ($old, $trip): m
             'date_to'                   => $trip->dateTo,
             'calendar_mode'             => $trip->calendarMode,
             'show_individual_responses' => $trip->showIndividualResponses,
+            'start_name'                => $trip->startName ?? $default,
+            'start_lat'                 => $trip->startLat !== null ? (string) $trip->startLat : $default,
+            'start_lng'                 => $trip->startLng !== null ? (string) $trip->startLng : $default,
             default => $default,
         };
     }
@@ -93,6 +96,112 @@ $action = $isEdit ? url('/admin/trips/' . $trip->id . '/edit') : url('/admin/tri
                       class="w-full px-4 py-3 rounded-xl bg-cream dark:bg-night border-2 <?= isset($errors['description']) ? 'border-red-400' : 'border-mist/20' ?> focus:border-primary text-ink dark:text-pale outline-none transition"><?= e((string) $val('description')) ?></textarea>
             <?php if (isset($errors['description'])): ?><p class="mt-1 text-xs text-red-500"><?= e($errors['description']) ?></p><?php endif; ?>
         </div>
+
+        <!-- Punkt startowy wyjazdu (opcjonalne) - uwzgledniany w algorytmie propozycji tras -->
+        <div class="rounded-2xl bg-paper dark:bg-deep border border-mist/15 p-4">
+            <label for="start_search" class="block text-sm font-medium text-ink dark:text-pale mb-1.5">
+                🏠 Punkt startowy wyjazdu <span class="text-mist font-normal">(opcjonalnie)</span>
+            </label>
+            <p class="text-xs text-mist mb-2.5">
+                Miasto z którego ekipa wyjeżdża - algorytm doliczy dystans od startu do pierwszego miejsca.
+            </p>
+            <input type="text" id="start_search" autocomplete="off" maxlength="200"
+                   placeholder="Wpisz miasto (np. Warszawa) - min 3 znaki"
+                   value="<?= e((string) $val('start_name')) ?>"
+                   class="w-full px-4 py-2.5 rounded-xl bg-cream dark:bg-night border-2 border-mist/20 focus:border-primary text-ink dark:text-pale outline-none transition">
+            <div id="start_search_results" class="mt-1 max-h-48 overflow-y-auto"></div>
+            <input type="hidden" name="start_name" id="start_name" value="<?= e((string) $val('start_name')) ?>">
+            <input type="hidden" name="start_lat"  id="start_lat"  value="<?= e((string) $val('start_lat')) ?>">
+            <input type="hidden" name="start_lng"  id="start_lng"  value="<?= e((string) $val('start_lng')) ?>">
+            <?php $hasStart = ((string) $val('start_name')) !== '' && ((string) $val('start_lat')) !== ''; ?>
+            <p id="start_current" class="mt-2 text-xs text-secondary <?= $hasStart ? '' : 'hidden' ?>">
+                ✓ Aktualnie: <span id="start_current_name"><?= e((string) $val('start_name')) ?></span>
+            </p>
+            <button type="button" id="start_clear" class="mt-2 ml-3 text-xs text-mist hover:text-red-500 transition <?= $hasStart ? '' : 'hidden' ?>">
+                Usuń punkt startowy
+            </button>
+        </div>
+
+        <script>
+        (function () {
+            const searchInput = document.getElementById('start_search');
+            const resultsBox  = document.getElementById('start_search_results');
+            const hiddenName  = document.getElementById('start_name');
+            const hiddenLat   = document.getElementById('start_lat');
+            const hiddenLng   = document.getElementById('start_lng');
+            const clearBtn    = document.getElementById('start_clear');
+            const currentBox  = document.getElementById('start_current');
+            const currentName = document.getElementById('start_current_name');
+            if (!searchInput || !resultsBox) return;
+
+            function updateCurrentDisplay() {
+                const has = hiddenName.value.trim() !== '' && hiddenLat.value !== '';
+                if (currentBox) currentBox.classList.toggle('hidden', !has);
+                if (clearBtn)   clearBtn.classList.toggle('hidden', !has);
+                if (currentName && has) currentName.textContent = hiddenName.value;
+            }
+
+            clearBtn?.addEventListener('click', () => {
+                searchInput.value = '';
+                hiddenName.value = '';
+                hiddenLat.value = '';
+                hiddenLng.value = '';
+                resultsBox.innerHTML = '';
+                updateCurrentDisplay();
+            });
+
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                const q = searchInput.value.trim();
+                // Reset gdy user zmienia - musi wybrac z listy
+                hiddenLat.value = '';
+                hiddenLng.value = '';
+                hiddenName.value = q;
+                updateCurrentDisplay();
+                if (q.length < 3) { resultsBox.innerHTML = ''; return; }
+                searchTimeout = setTimeout(() => fetchNominatim(q), 350);
+            });
+
+            async function fetchNominatim(q) {
+                resultsBox.innerHTML = '<div class="text-xs text-mist p-2">Szukam...</div>';
+                try {
+                    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=pl&q=' + encodeURIComponent(q);
+                    const r = await fetch(url);
+                    const data = await r.json();
+                    if (!Array.isArray(data) || data.length === 0) {
+                        resultsBox.innerHTML = '<div class="text-xs text-mist p-2">Brak wyników.</div>';
+                        return;
+                    }
+                    resultsBox.innerHTML = data.map((r, i) => {
+                        const short = (r.display_name || '').length > 80 ? r.display_name.substring(0, 77) + '...' : r.display_name;
+                        return `<button type="button" data-idx="${i}" class="w-full text-left px-3 py-2 rounded-lg hover:bg-primary/10 transition text-sm border-b border-mist/10 last:border-b-0">
+                            <div class="font-medium text-ink dark:text-pale">${esc(r.name || short)}</div>
+                            <div class="text-xs text-mist">${esc(short)}</div>
+                        </button>`;
+                    }).join('');
+                    resultsBox.querySelectorAll('button[data-idx]').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const r = data[parseInt(btn.getAttribute('data-idx'), 10)];
+                            const displayName = r.name || (r.display_name || '').split(',')[0] || '';
+                            searchInput.value = displayName;
+                            hiddenName.value  = displayName;
+                            hiddenLat.value   = String(r.lat);
+                            hiddenLng.value   = String(r.lon);
+                            resultsBox.innerHTML = '';
+                            updateCurrentDisplay();
+                        });
+                    });
+                } catch (e) {
+                    resultsBox.innerHTML = '<div class="text-xs text-red-500 p-2">Błąd wyszukiwania.</div>';
+                }
+            }
+
+            function esc(s) {
+                return String(s ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+            }
+        })();
+        </script>
 
         <!-- Daty -->
         <div class="grid sm:grid-cols-2 gap-4">

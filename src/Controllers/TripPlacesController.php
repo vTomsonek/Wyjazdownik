@@ -10,7 +10,9 @@ use App\Models\Participant;
 use App\Models\Trip;
 use App\Models\TripPlace;
 use App\Models\TripPlaceMedia;
+use App\Models\TripPlaceVote;
 use App\Services\MapColorService;
+use App\Services\RouteSuggestionService;
 use App\Services\UploadService;
 use RuntimeException;
 
@@ -45,12 +47,16 @@ final class TripPlacesController extends Controller
             ];
         }
 
+        // Statystyki ocen dla wszystkich miejsc trip'u - jednym query
+        $voteStats = TripPlaceVote::statsForTrip($trip->id, $participant->id);
+
         $this->render('participant/places', [
             'title'             => 'Atrakcje - ' . $trip->name,
             'trip'              => $trip,
             'participant'       => $participant,
             'places'            => $places,
             'authors'           => $authors,
+            'voteStats'         => $voteStats,
             'myColor'           => MapColorService::forParticipant($participant),
             'googleMapsApiKey'  => (string) config('google.maps_api_key', ''),
         ], 'app');
@@ -70,12 +76,17 @@ final class TripPlacesController extends Controller
 
         $name          = trim((string) $request->input('name', ''));
         $description   = trim((string) $request->input('description', ''));
+        $visitMinutes  = (int) $request->input('visit_minutes', 60);
         $lat           = $request->input('lat');
         $lng           = $request->input('lng');
         $address       = trim((string) $request->input('address', ''));
         $countryCode   = strtolower(trim((string) $request->input('country_code', '')));
         $osmPlaceId    = trim((string) $request->input('osm_place_id', ''));
         $googlePlaceId = trim((string) $request->input('google_place_id', ''));
+
+        // Clamp visit_minutes do rozsadnych wartosci (15min - 12h)
+        if ($visitMinutes < 15) $visitMinutes = 15;
+        if ($visitMinutes > 720) $visitMinutes = 720;
 
         if ($name === '' || mb_strlen($name) > 200) {
             $this->json(['ok' => false, 'error' => 'Podaj nazwę (do 200 znaków).'], 422);
@@ -97,6 +108,7 @@ final class TripPlacesController extends Controller
             'participant_id'  => $participant->id,
             'name'            => $name,
             'description'     => $description !== '' ? $description : null,
+            'visit_minutes'   => $visitMinutes,
             'lat'             => $lat,
             'lng'             => $lng,
             'address'         => $address !== '' ? $address : null,
@@ -123,14 +135,18 @@ final class TripPlacesController extends Controller
 
         $name = trim((string) $request->input('name', ''));
         $description = trim((string) $request->input('description', ''));
+        $visitMinutes = (int) $request->input('visit_minutes', $place->visitMinutes);
 
         if ($name === '' || mb_strlen($name) > 200) {
             $this->json(['ok' => false, 'error' => 'Podaj nazwę (do 200 znaków).'], 422);
         }
+        if ($visitMinutes < 15) $visitMinutes = 15;
+        if ($visitMinutes > 720) $visitMinutes = 720;
 
         $place = $place->update([
-            'name'        => $name,
-            'description' => $description !== '' ? $description : null,
+            'name'          => $name,
+            'description'   => $description !== '' ? $description : null,
+            'visit_minutes' => $visitMinutes,
         ]);
 
         $this->json(['ok' => true, 'place' => $place->toArray()]);
@@ -205,8 +221,8 @@ final class TripPlacesController extends Controller
             }
         } elseif ($type === 'video') {
             $count = TripPlaceMedia::countByTypeForPlace($place->id, TripPlaceMedia::TYPE_VIDEO);
-            if ($count >= 1) {
-                $this->json(['ok' => false, 'error' => 'Limit 1 wideo na miejsce.'], 422);
+            if ($count >= 3) {
+                $this->json(['ok' => false, 'error' => 'Limit 3 wideo na miejsce.'], 422);
             }
         } else {
             $this->json(['ok' => false, 'error' => 'Niepoprawny typ media.'], 422);
@@ -294,6 +310,111 @@ final class TripPlacesController extends Controller
         $media->delete();
 
         $this->json(['ok' => true]);
+    }
+
+    // ========================================================================
+    // ETAP 3: Oceny gwiazdkowe 1-5
+    // ========================================================================
+
+    public function vote(Request $request, array $args): never
+    {
+        Csrf::validate();
+        [$participant, $trip] = $this->resolve((string) $args['token']);
+
+        $place = TripPlace::findById((int) $args['id']);
+        if ($place === null || $place->tripId !== $trip->id) {
+            $this->json(['ok' => false, 'error' => 'Nie znaleziono miejsca.'], 404);
+        }
+
+        $rawScore = $request->input('score', null);
+        if ($rawScore === null || $rawScore === '' || !is_numeric($rawScore)) {
+            $this->json(['ok' => false, 'error' => 'Brak oceny.'], 422);
+        }
+        $score = (float) $rawScore;
+        // Snap do polowki + walidacja zakresu
+        $halfSteps = (int) round($score * 2);
+        if ($halfSteps < 1 || $halfSteps > 10) {
+            $this->json(['ok' => false, 'error' => 'Ocena musi być 0.5 - 5.0.'], 422);
+        }
+        $score = $halfSteps / 2;
+
+        try {
+            TripPlaceVote::upsert($place->id, $participant->id, $score);
+        } catch (\Throwable $e) {
+            $this->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+
+        $stats = TripPlaceVote::statsForPlace($place->id, $participant->id);
+        $this->json(['ok' => true, 'stats' => $stats]);
+    }
+
+    public function deleteVote(Request $request, array $args): never
+    {
+        Csrf::validate();
+        [$participant, $trip] = $this->resolve((string) $args['token']);
+
+        $place = TripPlace::findById((int) $args['id']);
+        if ($place === null || $place->tripId !== $trip->id) {
+            $this->json(['ok' => false, 'error' => 'Nie znaleziono miejsca.'], 404);
+        }
+
+        TripPlaceVote::deleteByPlaceAndParticipant($place->id, $participant->id);
+        $stats = TripPlaceVote::statsForPlace($place->id, $participant->id);
+        $this->json(['ok' => true, 'stats' => $stats]);
+    }
+
+    /**
+     * Widok mini-wizarda ocen - uczestnik przechodzi przez miejsca ktorych jeszcze nie ocenil.
+     * URL: /p/{token}/atrakcje/oceniaj
+     */
+    public function showRater(Request $request, array $args): never
+    {
+        [$participant, $trip] = $this->resolve((string) $args['token']);
+
+        $allPlaces = TripPlace::listForTrip($trip->id);
+        $voteStats = TripPlaceVote::statsForTrip($trip->id, $participant->id);
+
+        // Filtruj tylko nieocenione przez tego uczestnika
+        $toRate = [];
+        foreach ($allPlaces as $p) {
+            $myScore = $voteStats[$p->id]['my_score'] ?? null;
+            if ($myScore === null) {
+                $toRate[] = $p;
+            }
+        }
+
+        // Mapa: participant_id => nick + color (do atrybucji "kto dodal")
+        $participants = Participant::listVisibleForTrip($trip->id);
+        $authors = [];
+        foreach ($participants as $p) {
+            $authors[$p->id] = [
+                'nickname' => $p->nickname,
+                'color'    => MapColorService::forParticipant($p),
+            ];
+        }
+
+        $this->render('participant/places-rate', [
+            'title'             => 'Oceń miejsca - ' . $trip->name,
+            'trip'              => $trip,
+            'participant'       => $participant,
+            'toRate'            => $toRate,
+            'authors'           => $authors,
+            'totalCount'        => count($allPlaces),
+            'remainingCount'    => count($toRate),
+            'googleMapsApiKey'  => (string) config('google.maps_api_key', ''),
+        ], 'app');
+    }
+
+    // ========================================================================
+    // ETAP 4: Propozycje tras (algorytm klastrowania + TSP nearest neighbor)
+    // ========================================================================
+
+    public function suggestRoutes(Request $request, array $args): never
+    {
+        [, $trip] = $this->resolve((string) $args['token']);
+        $service = new RouteSuggestionService();
+        $suggestions = $service->suggest($trip->id);
+        $this->json(['ok' => true, 'routes' => $suggestions]);
     }
 
     /**

@@ -92,6 +92,7 @@ $router->post('/p/{token:hex}/map/pins/{id:int}/delete',  [ParticipantMapControl
 // Nowa kolaboratywna mapa atrakcji (zastapuje stara mape pomyslow)
 // ---------------------------------------------------------------------------
 $router->get ('/p/{token:hex}/atrakcje',                              [TripPlacesController::class, 'showMap']);
+$router->get ('/p/{token:hex}/atrakcje/oceniaj',                      [TripPlacesController::class, 'showRater']);
 $router->get ('/p/{token:hex}/places',                                [TripPlacesController::class, 'listPlaces']);
 $router->post('/p/{token:hex}/places',                                [TripPlacesController::class, 'createPlace']);
 $router->post('/p/{token:hex}/places/{id:int}/edit',                  [TripPlacesController::class, 'updatePlace']);
@@ -102,6 +103,13 @@ $router->get ('/p/{token:hex}/places/{id:int}/media',                 [TripPlace
 $router->post('/p/{token:hex}/places/{id:int}/media/upload',          [TripPlacesController::class, 'uploadMedia']);
 $router->post('/p/{token:hex}/places/{id:int}/media/link',            [TripPlacesController::class, 'addLink']);
 $router->post('/p/{token:hex}/places/{id:int}/media/{mediaId:int}/delete', [TripPlacesController::class, 'deleteMedia']);
+
+// Oceny gwiazdkowe 1-5 (1 ocena per uczestnik per miejsce)
+$router->post('/p/{token:hex}/places/{id:int}/vote',                  [TripPlacesController::class, 'vote']);
+$router->post('/p/{token:hex}/places/{id:int}/vote/delete',           [TripPlacesController::class, 'deleteVote']);
+
+// Propozycje tras - algorytm na podstawie ocen + lokalizacji
+$router->get ('/p/{token:hex}/routes',                                [TripPlacesController::class, 'suggestRoutes']);
 
 // ---------------------------------------------------------------------------
 // Placeholder routes - prawdziwe handlery w kolejnych etapach

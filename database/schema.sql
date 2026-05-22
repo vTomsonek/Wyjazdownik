@@ -7,6 +7,7 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS `trip_responses_audit`;
+DROP TABLE IF EXISTS `trip_place_votes`;
 DROP TABLE IF EXISTS `trip_place_media`;
 DROP TABLE IF EXISTS `trip_places`;
 DROP TABLE IF EXISTS `participant_map_pins`;
@@ -80,6 +81,9 @@ CREATE TABLE `trips` (
     `name`                      VARCHAR(150) NOT NULL,
     `slug`                      VARCHAR(160) NOT NULL,
     `description`               TEXT NULL,
+    `start_name`                VARCHAR(200) NULL DEFAULT NULL,
+    `start_lat`                 DECIMAL(10, 7) NULL DEFAULT NULL,
+    `start_lng`                 DECIMAL(10, 7) NULL DEFAULT NULL,
     `banner_image`              VARCHAR(255) NULL DEFAULT NULL,
     `date_from`                 DATE NOT NULL,
     `date_to`                   DATE NOT NULL,
@@ -208,6 +212,7 @@ CREATE TABLE `trip_places` (
     `participant_id` BIGINT UNSIGNED NOT NULL,
     `name`           VARCHAR(200) NOT NULL,
     `description`    TEXT NULL DEFAULT NULL,
+    `visit_minutes`  INT UNSIGNED NOT NULL DEFAULT 60,
     `lat`            DECIMAL(10, 7) NOT NULL,
     `lng`            DECIMAL(10, 7) NOT NULL,
     `address`         VARCHAR(500) NULL DEFAULT NULL,
@@ -224,6 +229,28 @@ CREATE TABLE `trip_places` (
         FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`)
         ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT `fk_trip_places_participant`
+        FOREIGN KEY (`participant_id`) REFERENCES `participants` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- trip_place_votes - oceny gwiazdkowe 1-5 (1 ocena per uczestnik per miejsce)
+-- ----------------------------------------------------------------------------
+CREATE TABLE `trip_place_votes` (
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `place_id`       BIGINT UNSIGNED NOT NULL,
+    `participant_id` BIGINT UNSIGNED NOT NULL,
+    `score`          DECIMAL(2,1) NOT NULL,  -- 0.5, 1.0, 1.5, ..., 5.0
+    `created_at`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_vote_per_user` (`place_id`, `participant_id`),
+    KEY `idx_vote_place`       (`place_id`),
+    KEY `idx_vote_participant` (`participant_id`),
+    CONSTRAINT `fk_votes_place`
+        FOREIGN KEY (`place_id`) REFERENCES `trip_places` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_votes_participant`
         FOREIGN KEY (`participant_id`) REFERENCES `participants` (`id`)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

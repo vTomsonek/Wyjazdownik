@@ -51,45 +51,24 @@ $pinTypeLabels = ['marker' => '📍 Pinezka', 'polyline' => '➡️ Trasa', 'pol
     </div>
 </div>
 
-<!-- Mapa pomyslow -->
+<!-- Mapa atrakcji - link do nowej osobnej funkcji -->
+<?php
+$placesUrl = isset($participant) ? url('/p/' . $participant->accessToken . '/atrakcje') : null;
+?>
 <div class="rounded-2xl bg-paper dark:bg-deep border border-mist/15 overflow-hidden">
     <div class="px-5 py-3 bg-cream/50 dark:bg-night/40 border-b border-mist/10">
-        <h3 class="font-display font-bold text-ink dark:text-pale">🗺️ Mapa pomysłów</h3>
+        <h3 class="font-display font-bold text-ink dark:text-pale">🗺️ Atrakcje</h3>
     </div>
-    <?php if (empty($pins)): ?>
-        <div class="px-5 py-4 text-sm text-mist italic">— nie zaznaczyłeś żadnej pinezki ani trasy —</div>
-    <?php else:
-        $pinsJson = json_encode(array_map(static fn($p) => $p->toArray(), $pins), JSON_UNESCAPED_UNICODE);
-    ?>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" crossorigin="">
-        <div id="review-map"
-             data-review-pins='<?= e($pinsJson) ?>'
-             style="height: 320px;"></div>
-        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" crossorigin=""></script>
-        <script src="<?= e(asset('assets/js/map-utils.js')) ?>"></script>
-        <script src="<?= e(asset('assets/js/review-map.js')) ?>"></script>
-        <ul class="divide-y divide-mist/10">
-            <?php foreach ($pins as $pin):
-                $typeLabel = $pinTypeLabels[$pin->pinType] ?? $pin->pinType;
-            ?>
-            <li class="px-5 py-3 grid sm:grid-cols-[1fr_2fr] gap-2 items-start">
-                <div class="flex items-center gap-2">
-                    <span class="inline-block w-3 h-3 rounded-full shrink-0" style="background:<?= e($pin->color ?? '#FF6B35') ?>"></span>
-                    <span class="text-sm text-mist"><?= e($typeLabel) ?></span>
-                </div>
-                <div>
-                    <div class="text-sm font-medium text-ink dark:text-pale">
-                        <?= e($pin->label ?? '(bez etykiety)') ?>
-                    </div>
-                    <?php if (!empty($pin->description)): ?>
-                        <div class="text-xs text-mist mt-0.5"><?= e($pin->description) ?></div>
-                    <?php endif; ?>
-                </div>
-            </li>
-            <?php endforeach; ?>
-        </ul>
-        <div class="px-5 py-3 text-xs text-mist border-t border-mist/10">
-            Łącznie <strong class="text-ink dark:text-pale font-mono"><?= count($pins) ?></strong> elementów na mapie.
-        </div>
-    <?php endif; ?>
+    <div class="px-5 py-4 text-sm">
+        <p class="text-mist mb-3">
+            Konkretne miejsca, oceny i propozycje tras są w osobnej interaktywnej mapie -
+            możesz wracać i dodawać miejsca w dowolnym momencie.
+        </p>
+        <?php if ($placesUrl !== null): ?>
+        <a href="<?= e($placesUrl) ?>" target="_blank"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-deep text-white font-semibold text-sm hover:bg-primary transition">
+            Otwórz mapę atrakcji →
+        </a>
+        <?php endif; ?>
+    </div>
 </div>
