@@ -220,7 +220,11 @@
             const lastDate = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
             for (let d = 1; d <= lastDate; d++) {
                 const date = new Date(cursor.getFullYear(), cursor.getMonth(), d);
-                const iso  = date.toISOString().slice(0, 10);
+                // Buduj ISO z LOKALNYCH komponentow - toISOString() konwertuje na UTC
+                // i w strefie CET (UTC+1/+2) odejmuje 1 dzien (lokalna polnoc = wczoraj UTC).
+                const iso = date.getFullYear() + '-' +
+                            String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                            String(date.getDate()).padStart(2, '0');
                 const inRange = date >= from && date <= to;
                 if (!inRange) {
                     html += '<div class="text-center py-1.5 text-mist/40">' + d + '</div>';
@@ -256,7 +260,10 @@
         let html = '';
         let weekStart = new Date(monday);
         while (weekStart <= to) {
-            const iso = weekStart.toISOString().slice(0, 10);
+            // Lokalny ISO (toISOString() konwertuje na UTC i przesuwa o 1 dzien w CET)
+            const iso = weekStart.getFullYear() + '-' +
+                        String(weekStart.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(weekStart.getDate()).padStart(2, '0');
             const end = new Date(weekStart); end.setDate(end.getDate() + 6);
             const fmt = d => String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0');
             const current = weeks[iso] || '';

@@ -6,22 +6,27 @@
 $heading = $heading ?? 'Wkrótce';
 $message = $message ?? '';
 ?>
-<section class="mx-auto max-w-2xl px-4 py-20 text-center">
-    <div class="w-24 h-24 mx-auto mb-6">
-        <?php require BASE_PATH . '/views/partials/mascot.php'; ?>
+<section class="section" style="position:relative; overflow:hidden">
+    <span style="position:absolute;width:380px;height:380px;border-radius:50%;filter:blur(8px);opacity:.40;pointer-events:none;background:radial-gradient(circle, rgba(14,155,170,0.28), transparent 65%);top:-100px;right:-120px;z-index:0"></span>
+
+    <div class="wrap" style="max-width:600px; position:relative; z-index:1; text-align:center">
+        <span class="eyebrow eyebrow--teal" style="margin-bottom:24px">
+            <span class="iconify" data-icon="ph:hourglass-medium-bold"></span> Wkrótce
+        </span>
+
+        <h1 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 4.4vw, 44px); margin: 14px 0 14px; color: var(--heading); line-height: 1.1">
+            <?= e($heading) ?>
+        </h1>
+
+        <?php if (!empty($message)): ?>
+        <p style="color: var(--fg-2); font-size: 17px; line-height: 1.55; margin: 0 auto 36px; max-width: 500px">
+            <?= e($message) ?>
+        </p>
+        <?php endif; ?>
+
+        <a class="btn btn-primary" href="<?= e(url('/')) ?>">
+            <span class="iconify" data-icon="ph:arrow-left-bold"></span>
+            Wróć na stronę główną
+        </a>
     </div>
-    <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-        Placeholder ETAPU 1
-    </span>
-    <h1 class="font-display font-bold text-3xl md:text-4xl text-ink dark:text-pale mb-3">
-        <?= e($heading) ?>
-    </h1>
-    <p class="text-lg text-mist mb-8">
-        <?= e($message) ?>
-    </p>
-    <a href="<?= e(url('/')) ?>"
-       class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-medium
-              hover:bg-primary hover:scale-105 transition">
-        Wróć na stronę główną
-    </a>
 </section>

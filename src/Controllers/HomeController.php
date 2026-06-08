@@ -19,7 +19,7 @@ final class HomeController extends Controller
             'description' => 'Polskie narzedzie do uzgadniania wspolnych wakacji w ekipie. Kazdy znajomy wypelnia ankiete, a wy razem ogladacie wspolny plan z rekomendacjami i rankingami.',
             'isDev'       => $isDev,
             'devData'     => $isDev ? $this->buildDevData() : null,
-        ]);
+        ], 'landing');
     }
 
     public function health(Request $request): never

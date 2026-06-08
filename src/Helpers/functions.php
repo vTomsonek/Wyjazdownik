@@ -56,15 +56,29 @@ if (!function_exists('e')) {
 if (!function_exists('asset')) {
     function asset(string $path): string
     {
-        $base = rtrim((string) env('APP_URL', ''), '/');
-        $rel  = ltrim($path, '/');
-        $url  = $base . '/' . $rel;
+        $rel = ltrim($path, '/');
+
+        // Wybierz base URL: APP_URL gdy host zgodny z aktualnym requestem,
+        // inaczej buduj z $_SERVER (dev lokalny pod innym domain niz APP_URL prod).
+        $appBase = rtrim((string) env('APP_URL', ''), '/');
+        $appHost = $appBase !== '' ? (parse_url($appBase, PHP_URL_HOST) ?? '') : '';
+        $curHost = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        $useAppUrl = $appBase !== '' && $appHost !== '' && strcasecmp($appHost, $curHost) === 0;
+
+        if ($useAppUrl) {
+            $base = $appBase;
+        } else {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host   = $curHost !== '' ? $curHost : 'localhost';
+            $dir    = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/')));
+            if ($dir === '.' || $dir === '') $dir = '/';
+            $base   = rtrim($scheme . '://' . $host . $dir, '/');
+        }
+
+        $url = $base . '/' . $rel;
 
         // Cache busting: dodaj ?v=mtime dla lokalnych plikow (CSS/JS/IMG).
-        // Cloudflare i przegladarka uzyskaja nowa wersje po kazdej zmianie pliku.
-        // Pomijaj zdalne URL i query string juz obecny.
         if (strpos($rel, '://') === false && strpos($url, '?') === false) {
-            // BASE_PATH wskazuje root projektu; public/ to subfolder.
             $absPath = defined('BASE_PATH') ? BASE_PATH . '/public/' . $rel : null;
             if ($absPath !== null && is_file($absPath)) {
                 $url .= '?v=' . filemtime($absPath);
@@ -77,7 +91,23 @@ if (!function_exists('asset')) {
 if (!function_exists('url')) {
     function url(string $path = ''): string
     {
-        $base = rtrim((string) env('APP_URL', ''), '/');
+        // Host-aware: APP_URL gdy zgodny z aktualnym requestem, inaczej budujemy z $_SERVER.
+        // Dzieki temu lokalny dev na 127.0.0.1 nie wysyla na produkcje wyjazdownik.pl.
+        $appBase = rtrim((string) env('APP_URL', ''), '/');
+        $appHost = $appBase !== '' ? (parse_url($appBase, PHP_URL_HOST) ?? '') : '';
+        $curHost = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        $useAppUrl = $appBase !== '' && $appHost !== '' && strcasecmp($appHost, $curHost) === 0;
+
+        if ($useAppUrl) {
+            $base = $appBase;
+        } else {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host   = $curHost !== '' ? $curHost : 'localhost';
+            $dir    = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/')));
+            if ($dir === '.' || $dir === '') $dir = '/';
+            $base   = rtrim($scheme . '://' . $host . $dir, '/');
+        }
+
         if ($path === '') {
             return $base;
         }

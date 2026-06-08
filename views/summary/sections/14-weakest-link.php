@@ -15,17 +15,15 @@ $transportLabels = QuestionLabels::get('transport_modes')['options']   ?? [];
 $fmt = static fn($n): string => is_numeric($n) ? number_format((int) $n, 0, ',', ' ') : '—';
 ?>
 
-<section class="bg-gradient-to-br from-rose-100 via-amber-50 to-rose-100 dark:from-rose-950/40 dark:via-amber-950/30 dark:to-rose-950/40 py-16 md:py-24 3xl:py-32 border-t-2 border-rose-300 dark:border-rose-800">
-    <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="section section--cream" style="background:linear-gradient(135deg, rgba(255,107,53,.08), rgba(255,210,63,.10) 50%, rgba(255,107,53,.08))">
+    <div class="wrap">
 
-        <header class="mb-10 md:mb-14 text-center max-w-3xl mx-auto">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-700 dark:text-rose-300">SEKCJA 14 / 15 &middot; Brutalna prawda</span>
-            <h2 class="font-display font-bold text-3xl md:text-5xl 3xl:text-6xl text-ink dark:text-pale mb-3">
-                🎯 Realne parametry wyjazdu
-            </h2>
-            <p class="text-mist text-lg md:text-xl">
-                Najsłabsze ogniwo wyznacza realny zakres tego, co ekipa zrobi. Bez owijania w bawełnę.
-            </p>
+        <header class="sec-head">
+            <span class="eyebrow" style="background:rgba(255,107,53,.16);color:#ED5320;border-color:rgba(255,107,53,.30)">
+                <span class="iconify" data-icon="ph:warning-circle-bold"></span> Brutalna prawda
+            </span>
+            <h2 style="margin-top:18px">🎯 Realne parametry wyjazdu</h2>
+            <p>Najsłabsze ogniwo wyznacza realny zakres tego, co ekipa zrobi. Bez owijania w bawełnę.</p>
         </header>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

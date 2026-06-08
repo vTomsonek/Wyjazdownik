@@ -34,20 +34,22 @@ $mapUrl           = url('/p/' . $participant->accessToken . '/atrakcje');
 $assetBase        = rtrim((string) env('APP_URL', ''), '/') . '/';
 ?>
 
-<section class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-    <!-- Header -->
+<section class="section">
+    <div class="wrap" style="max-width:680px">
+    <!-- Header w landing v2 stylu -->
     <div class="mb-6 flex items-center justify-between">
-        <a href="<?= e($mapUrl) ?>" class="text-sm text-mist hover:text-primary transition inline-flex items-center gap-1">
-            ← Wróć do mapy
+        <a href="<?= e($mapUrl) ?>" class="text-sm hover:text-primary transition inline-flex items-center gap-1" style="color: var(--fg-2)">
+            <span class="iconify" data-icon="ph:arrow-left-bold"></span> Wróć do mapy
         </a>
-        <span id="rater-progress" class="text-sm font-mono text-mist"></span>
+        <span id="rater-progress" class="text-sm font-mono" style="color: var(--fg-2)"></span>
     </div>
 
-    <h1 class="font-display font-bold text-3xl md:text-4xl text-ink dark:text-pale mb-2">
-        ⭐ Oceń miejsca
+    <span class="eyebrow" style="margin-bottom:14px"><span class="iconify" data-icon="ph:star-bold"></span> Ocena miejsc</span>
+    <h1 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 4vw, 44px); margin: 14px 0 12px; color: var(--heading); line-height:1.1">
+        ⭐ Oceń miejsca ekipy
     </h1>
-    <p class="text-mist mb-6">
-        Kliknij gwiazdki - przechodzimy automatycznie do następnego.
+    <p style="color: var(--fg-2); margin-bottom: 24px; line-height:1.55">
+        Kliknij gwiazdki — przechodzimy automatycznie do następnego.
     </p>
 
     <!-- Progress bar -->
@@ -125,19 +127,31 @@ $assetBase        = rtrim((string) env('APP_URL', ''), '/') . '/';
         </a>
     </div>
     <?php endif; ?>
+    </div>
 </section>
 
 <!-- Lightbox - pelnoekranowa galeria (obrazy + wideo) -->
-<div id="lb" class="fixed inset-0 z-[10001] hidden bg-black/95 items-center justify-center select-none">
+<div id="lb" class="fixed inset-0 z-[10001] hidden items-center justify-center select-none" style="background:#000">
     <button type="button" id="lb-close" aria-label="Zamknij"
-            class="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl transition flex items-center justify-center z-10">×</button>
+            class="absolute top-4 right-4 w-12 h-12 rounded-full text-white transition flex items-center justify-center z-10"
+            style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)">
+        <span class="iconify" data-icon="ph:x-bold" style="font-size:22px"></span>
+    </button>
     <button type="button" id="lb-prev" aria-label="Poprzednie"
-            class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl transition flex items-center justify-center z-10">‹</button>
+            class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full text-white transition flex items-center justify-center z-10"
+            style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)">
+        <span class="iconify" data-icon="ph:caret-left-bold" style="font-size:22px"></span>
+    </button>
     <button type="button" id="lb-next" aria-label="Następne"
-            class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl transition flex items-center justify-center z-10">›</button>
-    <div id="lb-counter" class="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-white/10 text-white text-sm font-mono z-10"></div>
+            class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full text-white transition flex items-center justify-center z-10"
+            style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)">
+        <span class="iconify" data-icon="ph:caret-right-bold" style="font-size:22px"></span>
+    </button>
+    <div id="lb-counter" class="absolute top-4 left-4 px-3 py-1.5 rounded-full text-white text-sm font-mono z-10"
+         style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)"></div>
     <div id="lb-media" class="max-w-full max-h-[88vh] flex items-center justify-center"></div>
-    <div id="lb-caption" class="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/10 text-white text-sm z-10 backdrop-blur-sm"></div>
+    <div id="lb-caption" class="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-white text-sm z-10"
+         style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)"></div>
 </div>
 
 <?php if (!empty($toRate) && $googleMapsApiKey !== ''): ?>

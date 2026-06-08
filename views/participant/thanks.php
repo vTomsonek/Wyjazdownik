@@ -4,41 +4,41 @@
  * @var \App\Models\Participant $participant
  */
 ?>
-<section class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-12 md:py-20 3xl:py-28 text-center">
+<section class="section" style="position:relative; overflow:hidden">
+    <span style="position:absolute;width:460px;height:460px;border-radius:50%;filter:blur(8px);opacity:.55;pointer-events:none;background:radial-gradient(circle, rgba(16,185,129,0.30), transparent 65%);top:-100px;right:-120px;z-index:0"></span>
+    <span style="position:absolute;width:380px;height:380px;border-radius:50%;filter:blur(8px);opacity:.55;pointer-events:none;background:radial-gradient(circle, rgba(255,210,63,0.30), transparent 65%);bottom:-100px;left:-120px;z-index:0"></span>
 
     <!-- Konfetti canvas -->
     <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-0" aria-hidden="true"></canvas>
 
-    <div class="relative z-10">
-        <div class="w-32 h-32 md:w-40 md:h-40 mx-auto mb-6 animate-float-slow">
-            <?php require BASE_PATH . '/views/partials/mascot.php'; ?>
-        </div>
+    <div class="wrap" style="max-width:680px; position:relative; z-index:1; text-align:center">
 
-        <span class="inline-block mb-4 px-3 py-1 rounded-full text-xs font-semibold bg-secondary/15 text-secondary">
-            ✓ Gotowe
+        <span class="eyebrow" style="background:rgba(16,185,129,.18); color:#10B981; border-color:rgba(16,185,129,.30); margin-bottom:24px">
+            <span class="iconify" data-icon="ph:check-circle-fill"></span> Gotowe!
         </span>
 
-        <h1 class="font-display font-bold text-4xl md:text-6xl 3xl:text-7xl text-ink dark:text-pale mb-4">
-            Dzięki, <?= e($participant->nickname) ?>!
+        <h1 style="font-family:var(--font-display); font-weight:800; letter-spacing:-0.025em; line-height:1.04; font-size:clamp(40px, 6vw, 72px); color:var(--heading); margin:20px 0 16px">
+            Dzięki, <span style="color:var(--orange)"><?= e($participant->nickname) ?></span>!
         </h1>
 
-        <p class="text-lg md:text-xl text-mist max-w-xl mx-auto mb-8 leading-relaxed">
-            Twoja ankieta dla <strong class="text-ink dark:text-pale"><?= e($trip->name) ?></strong> została wysłana.
-            Reszta ekipy wypełnia swoje, a potem włączacie razem podsumowanie na TV.
+        <p style="font-size:clamp(16px, 1.4vw, 19px); color:var(--fg-2); line-height:1.55; margin:0 auto 36px; max-width:560px">
+            Twoja ankieta dla <strong style="color:var(--heading)"><?= e($trip->name) ?></strong> została wysłana.<br>
+            Reszta ekipy wypełnia swoje — a potem włączacie razem podsumowanie na TV.
         </p>
 
-        <div class="rounded-2xl bg-paper dark:bg-deep border border-mist/15 p-5 md:p-6 max-w-md mx-auto mb-6 text-left">
-            <p class="text-sm text-mist mb-2">📌 Możesz wrócić tu w każdej chwili</p>
-            <p class="text-xs font-mono text-ink dark:text-pale break-all bg-cream dark:bg-night px-3 py-2 rounded-lg">
-                <?= e(url('/p/' . $participant->accessToken)) ?>
+        <!-- Link permanentny -->
+        <div style="background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px 22px; margin:0 auto 28px; max-width:520px; text-align:left">
+            <p style="font-size:13px; color:var(--fg-2); margin:0 0 10px; display:flex; align-items:center; gap:8px">
+                <span class="iconify" data-icon="ph:bookmark-simple-bold" style="font-size:18px; color:var(--orange)"></span>
+                <span>Zachowaj ten link — możesz edytować odpowiedzi w każdej chwili</span>
             </p>
-            <p class="mt-2 text-xs text-mist">
-                Zachowaj ten link - możesz edytować odpowiedzi gdy dojdzie ci coś do głowy.
+            <p style="font-family:ui-monospace, monospace; font-size:12px; color:var(--heading); word-break:break-all; background:var(--cream); padding:10px 14px; border-radius:10px; margin:0; border:1px solid var(--line)">
+                <?= e(url('/p/' . $participant->accessToken)) ?>
             </p>
         </div>
 
-        <a href="<?= e(url('/p/' . $participant->accessToken)) ?>"
-           class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-mist/15 text-ink dark:text-pale font-medium hover:bg-mist/25 transition">
+        <a class="btn btn-primary" href="<?= e(url('/p/' . $participant->accessToken)) ?>">
+            <span class="iconify" data-icon="ph:eye-bold"></span>
             Zobacz moje odpowiedzi
         </a>
     </div>

@@ -3,8 +3,8 @@
 $keys = ['accommodation', 'room_sharing', 'comfort_level', 'pace'];
 ?>
 <header class="mb-8">
-    <span class="text-3xl mb-2 block">🏨</span>
-    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale">Komfort i nocleg</h2>
+    <span class="eyebrow" style="margin-bottom:14px"><span class="iconify" data-icon="ph:bed-bold"></span> Krok 6: Komfort</span>
+    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale" style="margin-top:14px">🏨 Gdzie spać, jak żyć</h2>
     <p class="text-mist mt-2">Gdzie i jak chcesz spać, jakie tempo wyjazdu.</p>
 </header>
 

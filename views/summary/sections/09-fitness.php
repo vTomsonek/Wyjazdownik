@@ -45,14 +45,12 @@ arsort($actCounts);
 $majorityThreshold = (int) ceil($count / 2);
 ?>
 
-<section class="py-16 md:py-24 3xl:py-32">
-    <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="section">
+    <div class="wrap">
 
-        <header class="mb-10 md:mb-14 text-center">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600">SEKCJA 9 / 15</span>
-            <h2 class="font-display font-bold text-3xl md:text-5xl 3xl:text-6xl text-ink dark:text-pale mb-3">
-                🥾 Forma fizyczna
-            </h2>
+        <header class="sec-head">
+            <span class="eyebrow eyebrow--teal"><span class="iconify" data-icon="ph:sneaker-bold"></span> Forma fizyczna</span>
+            <h2 style="margin-top:18px">🥾 Co ekipa wytrzyma</h2>
         </header>
 
         <?php if ($count === 0 || empty($perPerson)): ?>

@@ -1,0 +1,68 @@
+/* ============================================================================
+   WYJAZDOWNIK.PL — LANDING TOKENS · "Letnia Bryza" (direction c)
+   Light is default; [data-theme="dark"] on <html> swaps to dark.
+   ============================================================================ */
+
+:root {
+    /* spacing */
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+    --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px; --s10: 128px;
+    --maxw: 1200px;
+
+    /* motion */
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* type */
+    --font-display: 'Sora', system-ui, sans-serif;
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --display-weight: 700;
+    --display-tracking: -0.02em;
+    --display-line: 1.06;
+
+    /* shape */
+    --radius: 24px;
+    --radius-lg: 34px;
+    --radius-sm: 16px;
+    --radius-btn: 16px;
+    --card-border: 1px solid var(--line);
+
+    /* colors — LIGHT (default) */
+    --bg: #FFFBF7;
+    --bg-2: #FFF0E8;
+    --surface: #FFFFFF;
+    --surface-2: #FFF6F0;
+    --ink: #2A2421;
+    --ink-2: #7C6F69;
+    --ink-3: #ABA09A;
+    --line: #F4E8DF;
+    --accent: #FF7A59;
+    --accent-strong: #F25C36;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #FFE9E1;
+    --accent-2: #4FB6B2;
+    --accent-2-soft: #DBF2F1;
+
+    --card-shadow: 0 24px 50px -28px rgba(255, 122, 89, 0.35);
+    --card-shadow-hover: 0 32px 64px -28px rgba(255, 122, 89, 0.5);
+}
+
+[data-theme="dark"] {
+    --bg: #1B1512;
+    --bg-2: #241A15;
+    --surface: #241B16;
+    --surface-2: #2C211B;
+    --ink: #FCEFE8;
+    --ink-2: #CDB9AE;
+    --ink-3: #947E72;
+    --line: #382820;
+    --accent: #FF8A6B;
+    --accent-strong: #FFA489;
+    --accent-ink: #1B120D;
+    --accent-soft: rgba(255, 138, 107, 0.16);
+    --accent-2: #5FCFCB;
+    --accent-2-soft: rgba(95, 207, 203, 0.16);
+
+    --card-shadow: 0 24px 50px -28px rgba(0, 0, 0, 0.6);
+    --card-shadow-hover: 0 32px 64px -28px rgba(0, 0, 0, 0.7);
+}

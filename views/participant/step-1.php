@@ -7,9 +7,9 @@
  */
 ?>
 <header class="mb-8">
-    <span class="text-3xl mb-2 block">📅</span>
-    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale">
-        Dostępność
+    <span class="eyebrow eyebrow--teal" style="margin-bottom:14px"><span class="iconify" data-icon="ph:calendar-bold"></span> Krok 1: Dostępność</span>
+    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale" style="margin-top:14px">
+        📅 Kiedy możesz pojechać
     </h2>
     <p class="text-mist mt-2">
         <?php if ($trip->calendarMode === 'block_unavailable'): ?>

@@ -410,6 +410,25 @@
                     renderMarkers();
                     addPlaceToList(data.place);
                     closeModal();
+                } else if (data && data.duplicate && data.duplicate.id) {
+                    // Duplikat - daj przycisk do istniejacego miejsca
+                    formError.innerHTML = '';
+                    const msg = document.createElement('div');
+                    msg.textContent = data.error || 'To miejsce już istnieje na mapie.';
+                    msg.className = 'mb-2';
+                    const openBtn = document.createElement('button');
+                    openBtn.type = 'button';
+                    openBtn.textContent = 'Otwórz istniejące miejsce →';
+                    openBtn.className = 'text-sm font-semibold text-primary hover:text-primary-deep underline';
+                    openBtn.addEventListener('click', () => {
+                        closeModal();
+                        if (window.__wyjazdownikPlaces && window.__wyjazdownikPlaces.openDetail) {
+                            window.__wyjazdownikPlaces.openDetail(data.duplicate.id);
+                        }
+                    });
+                    formError.appendChild(msg);
+                    formError.appendChild(openBtn);
+                    formError.classList.remove('hidden');
                 } else {
                     formError.textContent = (data && data.error) || 'Nie udało się dodać miejsca.';
                     formError.classList.remove('hidden');
@@ -618,7 +637,9 @@
         document.getElementById('detail-description').textContent = place.description || '';
 
         document.getElementById('detail-media').innerHTML = '<p class="text-sm text-mist italic">Ładuję media...</p>';
-        document.getElementById('detail-uploader').classList.toggle('hidden', !isMine);
+        // Uploader widoczny dla kazdego uczestnika - kazdy moze dorzucic media do dowolnego miejsca
+        document.getElementById('detail-uploader').classList.remove('hidden');
+        // Edycja nazwy/opisu/czasu - tylko autor miejsca
         document.getElementById('detail-edit-btn')?.classList.toggle('hidden', !isMine);
 
         // Wyjdz z trybu edycji przy otwarciu (mogliśmy zostać w edit z poprzedniej karty)
@@ -801,8 +822,33 @@
         const videos = mediaList.filter(m => m.type === 'video');
         const links  = mediaList.filter(m => m.type === 'link');
         const place = places.find(p => p.id === currentDetailPlaceId) || {};
-        const isMine = place.participant_id === cfg.myParticipantId;
-        const authorNick = (authors[place.participant_id] || {}).nickname || '?';
+        const isPlaceOwner = place.participant_id === cfg.myParticipantId;
+        const placeAuthorNick = (authors[place.participant_id] || {}).nickname || '?';
+
+        // Helper - czy moge usunac dane media (uploader albo autor miejsca; legacy bez uploadera -> autor)
+        const canDelete = m => {
+            if (isPlaceOwner) return true;
+            return m.participant_id !== null && m.participant_id !== undefined && m.participant_id === cfg.myParticipantId;
+        };
+        // Pokaz nick uploadera (legacy fallback -> autor miejsca)
+        const uploaderNick = m => {
+            const pid = m.participant_id;
+            if (pid && authors[pid]) return authors[pid].nickname;
+            return placeAuthorNick;
+        };
+        const uploaderColor = m => {
+            const pid = m.participant_id;
+            if (pid && authors[pid]) return authors[pid].color;
+            return (authors[place.participant_id] || {}).color || '#6B7280';
+        };
+        // Badge "dodal X" w prawym dolnym rogu kafelka
+        const uploaderBadge = m => {
+            const nick = uploaderNick(m);
+            const color = uploaderColor(m);
+            return `<span class="absolute bottom-1 left-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/65 text-white text-[10px] font-medium backdrop-blur-sm pointer-events-none">
+                <span class="inline-block w-2 h-2 rounded-full" style="background:${escapeHtml(color)}"></span>${escapeHtml(nick)}
+            </span>`;
+        };
 
         let html = '';
         detailLightboxItems = []; // reset
@@ -829,12 +875,13 @@
             for (const m of images) {
                 const src = cfg.urls.assetBase + m.file_path;
                 const idx = detailLightboxItems.length;
-                detailLightboxItems.push({ type: 'image', url: src, source: authorNick });
+                detailLightboxItems.push({ type: 'image', url: src, source: uploaderNick(m) });
                 html += `<div class="relative group">
                     <button type="button" data-lightbox-idx="${idx}" class="block w-full cursor-zoom-in">
                         <img src="${escapeHtml(src)}" alt="${escapeHtml(m.caption || '')}" class="w-full h-32 object-cover rounded-lg">
                     </button>
-                    ${isMine ? `<button type="button" data-delete-media="${m.id}" class="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-xs hover:bg-red-600 transition opacity-0 group-hover:opacity-100">🗑</button>` : ''}
+                    ${uploaderBadge(m)}
+                    ${canDelete(m) ? `<button type="button" data-delete-media="${m.id}" class="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-xs hover:bg-red-600 transition opacity-0 group-hover:opacity-100">🗑</button>` : ''}
                 </div>`;
             }
             html += '</div></div>';
@@ -845,7 +892,7 @@
             for (const m of videos) {
                 const src = cfg.urls.assetBase + m.file_path;
                 const idx = detailLightboxItems.length;
-                detailLightboxItems.push({ type: 'video', url: src, source: authorNick });
+                detailLightboxItems.push({ type: 'video', url: src, source: uploaderNick(m) });
                 html += `<div class="relative group">
                     <button type="button" data-lightbox-idx="${idx}" class="block w-full cursor-zoom-in">
                         <video preload="metadata" class="w-full h-32 object-cover rounded-lg pointer-events-none">
@@ -855,7 +902,8 @@
                             <span class="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center text-lg">▶</span>
                         </div>
                     </button>
-                    ${isMine ? `<button type="button" data-delete-media="${m.id}" class="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-xs hover:bg-red-600 transition opacity-0 group-hover:opacity-100">🗑</button>` : ''}
+                    ${uploaderBadge(m)}
+                    ${canDelete(m) ? `<button type="button" data-delete-media="${m.id}" class="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-xs hover:bg-red-600 transition opacity-0 group-hover:opacity-100">🗑</button>` : ''}
                 </div>`;
             }
             html += '</div></div>';
@@ -867,14 +915,15 @@
                 const label = m.caption || m.url;
                 html += `<li class="flex items-center gap-2 group">
                     <a href="${escapeHtml(m.url)}" target="_blank" rel="noopener" class="flex-1 text-sm text-secondary hover:underline truncate">${escapeHtml(label)}</a>
-                    ${isMine ? `<button type="button" data-delete-media="${m.id}" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-sm transition">🗑</button>` : ''}
+                    <span class="text-[10px] text-mist whitespace-nowrap">— ${escapeHtml(uploaderNick(m))}</span>
+                    ${canDelete(m) ? `<button type="button" data-delete-media="${m.id}" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-sm transition">🗑</button>` : ''}
                 </li>`;
             }
             html += '</ul></div>';
         }
 
         if (images.length === 0 && videos.length === 0 && links.length === 0 && googlePhotos.length === 0) {
-            html = '<p class="text-sm text-mist italic">Brak media. ' + (isMine ? 'Dodaj zdjęcia/wideo/linki poniżej.' : '') + '</p>';
+            html = '<p class="text-sm text-mist italic">Brak media. Dodaj zdjęcia/wideo/linki poniżej - kto pierwszy pokaże ekipie czemu warto!</p>';
         }
 
         container.innerHTML = html;
@@ -1428,10 +1477,10 @@
         // Pokaż z powrotem wszystkie sekcje
         document.getElementById('detail-rating')?.classList.remove('hidden');
         document.getElementById('detail-media')?.classList.remove('hidden');
-        // Uploader pokazujemy tylko gdy moja karta (oryginalna logika)
+        // Uploader widoczny dla kazdego uczestnika; edit-btn tylko dla autora miejsca
         const place = places.find(p => p.id === currentDetailPlaceId);
         const isMine = place && place.participant_id === cfg.myParticipantId;
-        document.getElementById('detail-uploader')?.classList.toggle('hidden', !isMine);
+        document.getElementById('detail-uploader')?.classList.remove('hidden');
         document.getElementById('detail-edit-btn')?.classList.toggle('hidden', !isMine);
         document.getElementById('detail-edit-error')?.classList.add('hidden');
     }

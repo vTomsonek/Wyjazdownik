@@ -109,6 +109,26 @@ final class TripPlacesController extends Controller
         if (mb_strlen($osmPlaceId) > 50)          $osmPlaceId = mb_substr($osmPlaceId, 0, 50);
         if (mb_strlen($description) > 2000)       $description = mb_substr($description, 0, 2000);
 
+        // Duplikat? Match po google_place_id lub bliskosci 50m
+        $duplicate = TripPlace::findDuplicateInTrip(
+            $trip->id,
+            $lat,
+            $lng,
+            $googlePlaceId !== '' ? $googlePlaceId : null
+        );
+        if ($duplicate !== null) {
+            $duplicateAuthor = '?';
+            $authorParticipant = \App\Models\Participant::findById($duplicate->participantId);
+            if ($authorParticipant !== null) {
+                $duplicateAuthor = $authorParticipant->nickname;
+            }
+            $this->json([
+                'ok'        => false,
+                'error'     => 'To miejsce jest już na mapie - dodał(a) je: ' . $duplicateAuthor . ' (jako "' . $duplicate->name . '"). Możesz dorzucić swoje zdjęcia/wideo/linki do istniejącego.',
+                'duplicate' => $duplicate->toArray(),
+            ], 409);
+        }
+
         try {
             $place = TripPlace::create([
                 'trip_id'         => $trip->id,
@@ -211,10 +231,9 @@ final class TripPlacesController extends Controller
         if ($place === null || $place->tripId !== $trip->id) {
             $this->json(['ok' => false, 'error' => 'Nie znaleziono miejsca.'], 404);
         }
-        // Tylko autor moze wgrywac media do swojego miejsca
-        if (!$place->belongsToParticipant($participant->id)) {
-            $this->json(['ok' => false, 'error' => 'Możesz wgrywać media tylko do swoich miejsc.'], 403);
-        }
+        // Kazdy uczestnik wyjazdu moze dorzucic media do dowolnego miejsca
+        // (autor placeholdera nie musi sam mieс fotek - inni moga przekonac reszte).
+        // Autoryzacja juz przeszla przez $this->resolve() (uczestnik musi byc czlonkiem tego trip'u).
 
         $file    = $_FILES['file'] ?? [];
         $caption = trim((string) $request->input('caption', ''));
@@ -252,10 +271,11 @@ final class TripPlacesController extends Controller
         }
 
         $media = TripPlaceMedia::create([
-            'place_id'  => $place->id,
-            'type'      => $type,
-            'file_path' => $relPath,
-            'caption'   => $caption !== '' ? $caption : null,
+            'place_id'       => $place->id,
+            'participant_id' => $participant->id,
+            'type'           => $type,
+            'file_path'      => $relPath,
+            'caption'        => $caption !== '' ? $caption : null,
         ]);
 
         $this->json(['ok' => true, 'media' => $media->toArray()]);
@@ -270,9 +290,7 @@ final class TripPlacesController extends Controller
         if ($place === null || $place->tripId !== $trip->id) {
             $this->json(['ok' => false, 'error' => 'Nie znaleziono miejsca.'], 404);
         }
-        if (!$place->belongsToParticipant($participant->id)) {
-            $this->json(['ok' => false, 'error' => 'Możesz dodawać linki tylko do swoich miejsc.'], 403);
-        }
+        // Linki dodaje kazdy uczestnik wyjazdu (jak media).
 
         $url     = trim((string) $request->input('url', ''));
         $caption = trim((string) $request->input('caption', ''));
@@ -288,10 +306,11 @@ final class TripPlacesController extends Controller
         }
 
         $media = TripPlaceMedia::create([
-            'place_id' => $place->id,
-            'type'     => TripPlaceMedia::TYPE_LINK,
-            'url'      => $url,
-            'caption'  => $caption !== '' ? $caption : null,
+            'place_id'       => $place->id,
+            'participant_id' => $participant->id,
+            'type'           => TripPlaceMedia::TYPE_LINK,
+            'url'            => $url,
+            'caption'        => $caption !== '' ? $caption : null,
         ]);
 
         $this->json(['ok' => true, 'media' => $media->toArray()]);
@@ -306,13 +325,18 @@ final class TripPlacesController extends Controller
         if ($place === null || $place->tripId !== $trip->id) {
             $this->json(['ok' => false, 'error' => 'Nie znaleziono miejsca.'], 404);
         }
-        if (!$place->belongsToParticipant($participant->id)) {
-            $this->json(['ok' => false, 'error' => 'Możesz usuwać media tylko ze swoich miejsc.'], 403);
-        }
 
         $media = TripPlaceMedia::findById((int) $args['mediaId']);
         if ($media === null || $media->placeId !== $place->id) {
             $this->json(['ok' => false, 'error' => 'Nie znaleziono media.'], 404);
+        }
+
+        // Usuwac moze: (a) ten kto wgral dane media, (b) autor miejsca (moderacja).
+        // Legacy media bez participant_id sa traktowane jako nalezace do autora miejsca.
+        $isUploader   = $media->participantId !== null && $media->participantId === $participant->id;
+        $isPlaceOwner = $place->belongsToParticipant($participant->id);
+        if (!$isUploader && !$isPlaceOwner) {
+            $this->json(['ok' => false, 'error' => 'Możesz usuwać tylko własne wgrane media (lub jako autor miejsca - wszystkie).'], 403);
         }
 
         if ($media->filePath !== null) {

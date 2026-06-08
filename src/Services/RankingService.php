@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Database\Connection;
 use App\Models\Participant;
 
 /**
@@ -39,6 +40,9 @@ final class RankingService
             $pinsCount[$pin->participantId] = ($pinsCount[$pin->participantId] ?? 0) + 1;
         }
 
+        // Pre-compute danych z platformy: miejsca dodane + glosy oddane per uczestnik
+        $extraData = $this->computePlatformActivity($this->agg->trip->id);
+
         $out = [];
         foreach ($defs as $badgeId => $badge) {
             $scores = [];
@@ -46,7 +50,13 @@ final class RankingService
                 $resp = $responses[$p->id] ?? [];
                 $unav = count($unavailMap[$p->id] ?? []);
                 $pins = $pinsCount[$p->id] ?? 0;
-                $score = ($badge['score'])($p, $resp, $unav, $pins);
+                $extra = [
+                    'places_added' => $extraData['places_per_participant'][$p->id] ?? 0,
+                    'votes_count'  => $extraData['votes_count_per_participant'][$p->id] ?? 0,
+                    'votes_avg'    => $extraData['votes_avg_per_participant'][$p->id] ?? null,
+                    'votes_total'  => $extraData['total_places'],
+                ];
+                $score = ($badge['score'])($p, $resp, $unav, $pins, $extra);
                 if ($score > 0) $scores[$p->id] = $score;
             }
             if (empty($scores)) continue;
@@ -64,6 +74,67 @@ final class RankingService
             ];
         }
         return $out;
+    }
+
+    /**
+     * Pobiera dane z platformy potrzebne odznakom "z aktywnosci":
+     * - places_per_participant: ile miejsc dodal kazdy uczestnik
+     * - votes_count_per_participant: ile glosow oddal
+     * - votes_avg_per_participant: srednia ocen ktore wystawia (1-5)
+     * - total_places: ile lacznie miejsc w tripcie (do liczenia 100% pokrycia)
+     *
+     * @return array{
+     *   places_per_participant: array<int,int>,
+     *   votes_count_per_participant: array<int,int>,
+     *   votes_avg_per_participant: array<int,float>,
+     *   total_places: int
+     * }
+     */
+    private function computePlatformActivity(int $tripId): array
+    {
+        $pdo = Connection::get();
+
+        // Miejsca dodane
+        $stmt = $pdo->prepare(
+            'SELECT participant_id, COUNT(*) AS cnt
+             FROM trip_places
+             WHERE trip_id = :tid
+             GROUP BY participant_id'
+        );
+        $stmt->execute(['tid' => $tripId]);
+        $places = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $places[(int) $row['participant_id']] = (int) $row['cnt'];
+        }
+
+        // Glosy + srednia per uczestnik
+        $stmt = $pdo->prepare(
+            'SELECT v.participant_id, COUNT(*) AS cnt, AVG(v.score) AS avg_score
+             FROM trip_place_votes v
+             JOIN trip_places p ON p.id = v.place_id
+             WHERE p.trip_id = :tid
+             GROUP BY v.participant_id'
+        );
+        $stmt->execute(['tid' => $tripId]);
+        $votesCount = [];
+        $votesAvg   = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $pid = (int) $row['participant_id'];
+            $votesCount[$pid] = (int) $row['cnt'];
+            $votesAvg[$pid]   = (float) $row['avg_score'];
+        }
+
+        // Total miejsc w tripcie
+        $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM trip_places WHERE trip_id = :tid');
+        $stmt->execute(['tid' => $tripId]);
+        $totalPlaces = (int) ($stmt->fetch()['cnt'] ?? 0);
+
+        return [
+            'places_per_participant'      => $places,
+            'votes_count_per_participant' => $votesCount,
+            'votes_avg_per_participant'   => $votesAvg,
+            'total_places'                => $totalPlaces,
+        ];
     }
 
     /**
@@ -160,8 +231,17 @@ final class RankingService
                 'icon' => '🛋️', 'name' => 'Leniwiec',
                 'description' => 'Leżenie, regeneracja, koniec dyskusji.',
                 'score' => static function ($p, $r): float {
+                    // GATE: prawdziwy leniwiec nie chodzi 15+ km dziennie ani nie ma 4+ sportow
+                    // (zapobiega koliziom z Maszyna / Sportowiec)
+                    $w = $r['daily_walking_capacity'] ?? '';
+                    if ($w === 'over_25km' || $w === '15_25km') return 0;
+                    $phys = $r['physical_activities'] ?? [];
+                    if (is_array($phys)) {
+                        $active = array_values(array_filter($phys, static fn($a) => $a !== 'none_relax'));
+                        if (count($active) >= 4) return 0;
+                    }
                     $s = 0;
-                    if (($r['daily_walking_capacity'] ?? '') === 'under_3km') $s += 4;
+                    if ($w === 'under_3km') $s += 4;
                     if (($r['pace'] ?? '') === 'chill') $s += 3;
                     $exp = $r['trip_expectations'] ?? [];
                     if (is_array($exp) && in_array('rest', $exp, true)) $s += 3;
@@ -246,8 +326,12 @@ final class RankingService
             ],
             'odkrywca' => [
                 'icon' => '🗺️', 'name' => 'Odkrywca',
-                'description' => 'Najwięcej pinezek, tras i obszarów na mapie.',
-                'score' => static fn($p, $r, $unav, $pins): float => (float) $pins,
+                'description' => 'Najwięcej miejsc dodanych do mapy ekipy.',
+                // Uzywa nowego systemu trip_places (ETAP 5 ranking). Stary participant_map_pins
+                // byl zastapiony - tu liczymy realne miejsca z ocen, nie historyczne pinezki.
+                'score' => static function ($p, $r, $unav, $pins, $extra): float {
+                    return (float) ($extra['places_added'] ?? 0);
+                },
             ],
             'globtrotter' => [
                 'icon' => '✈️', 'name' => 'Globtrotter',
@@ -305,6 +389,235 @@ final class RankingService
                         if ($level === 'fluent') $fluent++;
                     }
                     return $fluent >= 3 ? (float) $fluent : 0;
+                },
+            ],
+
+            // ============================================================
+            // NOWE odznaki - rozszerzenie palety z dodatkowych pol ankiety
+            // ============================================================
+
+            'wegetarianin' => [
+                'icon' => '🌱', 'name' => 'Wegetarianin',
+                'description' => 'Mięsne dania omija szerokim łukiem.',
+                'score' => static function ($p, $r): float {
+                    $diet = $r['dietary_restrictions'] ?? [];
+                    if (!is_array($diet)) return 0;
+                    if (in_array('vegan', $diet, true))      return 10;
+                    if (in_array('vegetarian', $diet, true)) return 8;
+                    return 0;
+                },
+            ],
+            'alergik' => [
+                'icon' => '🤧', 'name' => 'Alergik',
+                'description' => 'Trzeba sprawdzić skład każdej potrawy.',
+                'score' => static function ($p, $r): float {
+                    $allergies = $r['food_allergies'] ?? '';
+                    if (!is_string($allergies)) return 0;
+                    $trimmed = trim($allergies);
+                    if ($trimmed === '') return 0;
+                    // Im dluzszy opis tym wyzszy score (wiecej alergii)
+                    return min(10, 3 + (mb_strlen($trimmed) / 30));
+                },
+            ],
+            'debiutant' => [
+                'icon' => '🐣', 'name' => 'Debiutant',
+                'description' => 'Pierwsze poważne wyjście za granicę.',
+                'score' => static fn($p, $r): float => ($r['travel_experience'] ?? '') === 'first_time' ? 10 : 0,
+            ],
+            'adrenalinowiec' => [
+                'icon' => '🪂', 'name' => 'Adrenalinowiec',
+                'description' => 'Spadochrony, wspinaczki, sporty ekstremalne.',
+                'score' => static function ($p, $r): float {
+                    $exp  = $r['trip_expectations'] ?? [];
+                    $phys = $r['physical_activities'] ?? [];
+                    $s = 0;
+                    if (is_array($exp) && in_array('adventure_adrenaline', $exp, true)) $s += 5;
+                    if (is_array($phys) && in_array('climbing', $phys, true))           $s += 3;
+                    if (is_array($phys) && in_array('winter_sports', $phys, true))      $s += 2;
+                    if (is_array($phys) && in_array('watersports', $phys, true))        $s += 1;
+                    return $s;
+                },
+            ],
+            'romantyk' => [
+                'icon' => '💕', 'name' => 'Romantyk',
+                'description' => 'Zachody słońca, kolacje przy świecach, "my time".',
+                'score' => static function ($p, $r): float {
+                    $exp = $r['trip_expectations'] ?? [];
+                    $s = 0;
+                    if (is_array($exp) && in_array('romance', $exp, true))                $s += 5;
+                    if (is_array($exp) && in_array('time_with_loved_ones', $exp, true))   $s += 3;
+                    if (($r['pace'] ?? '') === 'chill')                                    $s += 1;
+                    if (($r['food_style'] ?? '') === 'fine_dining')                        $s += 1;
+                    return $s;
+                },
+            ],
+            'eskapista' => [
+                'icon' => '🌲', 'name' => 'Eskapista',
+                'description' => 'Ucieczka od cywilizacji, namiot pod gwiazdami.',
+                'score' => static function ($p, $r): float {
+                    $exp   = $r['trip_expectations'] ?? [];
+                    $accom = $r['accommodation'] ?? [];
+                    $s = 0;
+                    if (is_array($exp) && in_array('escape_civilization', $exp, true)) $s += 5;
+                    if (is_array($accom) && in_array('tent', $accom, true))            $s += 3;
+                    if (is_array($accom) && in_array('camping', $accom, true))         $s += 2;
+                    return $s;
+                },
+            ],
+            'eksperymentator' => [
+                'icon' => '✨', 'name' => 'Eksperymentator',
+                'description' => 'Wszystko nowe, wszystko spróbować.',
+                'score' => static function ($p, $r): float {
+                    $exp = $r['trip_expectations'] ?? [];
+                    $s = 0;
+                    if (is_array($exp) && in_array('trying_new_things', $exp, true)) $s += 5;
+                    if (((int) ($r['food_openness'] ?? 0)) === 5)                    $s += 3;
+                    if (($r['travel_experience'] ?? '') === 'globetrotter')          $s += 1;
+                    return $s;
+                },
+            ],
+            'spalony_sloncem' => [
+                'icon' => '🥵', 'name' => 'Spalony Słońcem',
+                'description' => 'Tylko ciepło, mróz to nie dla mnie.',
+                'score' => static function ($p, $r): float {
+                    $clim = $r['climate_tolerance'] ?? [];
+                    if (!is_array($clim) || empty($clim)) return 0;
+                    $hot  = (int) (in_array('hot_30plus', $clim, true)) + (int) (in_array('warm_20_30', $clim, true));
+                    $cold = (int) (in_array('cool_under_10', $clim, true)) + (int) (in_array('cold_winter', $clim, true));
+                    if ($cold > 0) return 0; // toleruje zimno - nie kwalifikuje sie
+                    return $hot >= 1 ? 5 + $hot : 0;
+                },
+            ],
+            'lubie_mroz' => [
+                'icon' => '❄️', 'name' => 'Lubię Mróz',
+                'description' => 'Śnieg, zima, ferie zimowe.',
+                'score' => static function ($p, $r): float {
+                    $clim = $r['climate_tolerance'] ?? [];
+                    if (!is_array($clim) || empty($clim)) return 0;
+                    $cold = (int) (in_array('cold_winter', $clim, true)) * 3 + (int) (in_array('cool_under_10', $clim, true)) * 2;
+                    return $cold;
+                },
+            ],
+            'termoodporny' => [
+                'icon' => '🌡️', 'name' => 'Termoodporny',
+                'description' => 'Toleruje wszystko - od upału do mrozu.',
+                'score' => static function ($p, $r): float {
+                    $clim = $r['climate_tolerance'] ?? [];
+                    if (!is_array($clim)) return 0;
+                    return count($clim) >= 4 ? (float) count($clim) : 0;
+                },
+            ],
+            'sportowiec' => [
+                'icon' => '🏃', 'name' => 'Sportowiec',
+                'description' => 'Cardio rano, hiking po południu, joga wieczorem.',
+                'score' => static function ($p, $r): float {
+                    $phys = $r['physical_activities'] ?? [];
+                    if (!is_array($phys)) return 0;
+                    // Wykluczamy "none_relax" z liczenia
+                    $active = array_values(array_filter($phys, static fn($a) => $a !== 'none_relax'));
+                    return count($active) >= 4 ? (float) count($active) : 0;
+                },
+            ],
+            'kolejarz' => [
+                'icon' => '🚆', 'name' => 'Kolejarz',
+                'description' => 'Pociąg > samochód. Bez stania w korkach.',
+                'score' => static function ($p, $r): float {
+                    $modes = $r['transport_modes'] ?? [];
+                    if (!is_array($modes)) return 0;
+                    $hasTrain = in_array('train', $modes, true);
+                    $hasCar   = in_array('car', $modes, true);
+                    if (!$hasTrain) return 0;
+                    return $hasCar ? 3 : 7; // bonus za "tylko pociąg"
+                },
+            ],
+            'latacz' => [
+                'icon' => '✈️', 'name' => 'Latacz',
+                'description' => 'Samolot i paszport gotowy.',
+                'score' => static function ($p, $r): float {
+                    $modes = $r['transport_modes'] ?? [];
+                    if (!is_array($modes) || !in_array('plane', $modes, true)) return 0;
+                    $hasPass = ($r['has_passport'] ?? null) === 'true' || $r['has_passport'] === true;
+                    return $hasPass ? 8 : 4;
+                },
+            ],
+            'stadny' => [
+                'icon' => '👥', 'name' => 'Stadny',
+                'description' => 'Pełna ekipa razem, cały czas.',
+                'score' => static function ($p, $r): float {
+                    $soc = $r['social_preference'] ?? [];
+                    if (!is_array($soc)) return 0;
+                    if (!in_array('always_together', $soc, true)) return 0;
+                    $s = 5;
+                    if (in_array('need_alone_time', $soc, true)) $s -= 2;     // mieszane = mniejszy stadny
+                    if (in_array('ok_with_solo_activities', $soc, true)) $s -= 1;
+                    return max(1, $s);
+                },
+            ],
+            'samotnik' => [
+                'icon' => '🧘', 'name' => 'Samotnik',
+                'description' => 'Potrzebuje momentu sam ze sobą.',
+                'score' => static function ($p, $r): float {
+                    $soc = $r['social_preference'] ?? [];
+                    if (!is_array($soc)) return 0;
+                    $s = 0;
+                    if (in_array('need_alone_time', $soc, true))         $s += 4;
+                    if (in_array('ok_with_solo_activities', $soc, true)) $s += 2;
+                    if (in_array('always_together', $soc, true))         $s -= 3;
+                    return max(0, $s);
+                },
+            ],
+            'dormitorium_ok' => [
+                'icon' => '🛏️', 'name' => 'Dormitorium OK',
+                'description' => 'Hostel z 8 łóżkami w pokoju? Czemu nie.',
+                'score' => static function ($p, $r): float {
+                    $rs = $r['room_sharing'] ?? '';
+                    if ($rs !== 'dormitory_ok') return 0;
+                    $s = 7;
+                    $accom = $r['accommodation'] ?? [];
+                    if (is_array($accom) && in_array('hostel', $accom, true)) $s += 2;
+                    return $s;
+                },
+            ],
+
+            // ============================================================
+            // Odznaki z aktywnosci na platformie (TripPlaceVote stats)
+            // Uwaga: "Odkrywca" wyzej tez liczy aktywnosc (miejsca dodane) - bylo
+            // wczesniej oparte o stary system pinezek, teraz uzywa trip_places.
+            // ============================================================
+
+            'hojne_serce' => [
+                'icon' => '🌟', 'name' => 'Hojne Serce',
+                'description' => 'Najwyższa średnia ocen jakie wystawia (wszystko mu się podoba).',
+                'score' => static function ($p, $r, $unav, $pins, $extra): float {
+                    if (($extra['votes_count'] ?? 0) < 5) return 0; // min 5 głosów żeby się liczyło
+                    return (float) ($extra['votes_avg'] ?? 0);
+                },
+            ],
+            'surowy_krytyk' => [
+                'icon' => '👎', 'name' => 'Surowy Krytyk',
+                'description' => 'Najniższa średnia ocen (nic mu się nie podoba).',
+                'score' => static function ($p, $r, $unav, $pins, $extra): float {
+                    if (($extra['votes_count'] ?? 0) < 5) return 0; // min 5 głosów
+                    $avg = (float) ($extra['votes_avg'] ?? 5);
+                    // Im NIZSZA srednia tym wyzszy score (odwrocone)
+                    return max(0, 6 - $avg);
+                },
+            ],
+            'sedzia' => [
+                'icon' => '⚡', 'name' => 'Sędzia',
+                'description' => 'Najwięcej głosów oddanych w rankingu miejsc.',
+                'score' => static function ($p, $r, $unav, $pins, $extra): float {
+                    return (float) ($extra['votes_count'] ?? 0);
+                },
+            ],
+            'skupiony' => [
+                'icon' => '📝', 'name' => 'Skupiony',
+                'description' => 'Ocenił 100% miejsc na liście.',
+                'score' => static function ($p, $r, $unav, $pins, $extra): float {
+                    $total = $extra['votes_total'] ?? 0;
+                    $count = $extra['votes_count'] ?? 0;
+                    if ($total < 5) return 0; // za malo miejsc by liczyc
+                    return $count >= $total ? 10 : 0;
                 },
             ],
         ];

@@ -24,11 +24,25 @@ final class RouteSuggestionService
     /** Miejsca z mniejsza ocena srednia ignoruj. */
     private const MIN_SCORE = 3.0;
 
-    /** Promien klastrowania - miejsca dalej niz X km tworza osobny klaster. */
-    private const CLUSTER_RADIUS_KM = 450.0;
+    /** Promien klastrowania - miejsce dolaczane do klastra jesli w tym promieniu od KTOREGOKOLWIEK czlonka. */
+    private const CLUSTER_RADIUS_KM = 250.0;
 
-    /** Sredni dystans dzienny jazdy (km). */
-    private const DAILY_DRIVE_KM = 400.0;
+    /** Maksymalna srednica klastra (max odleglosc miedzy dowolnymi 2 czlonkami).
+     *  Zapobiega tworzeniu lancuchow Slovenia→Chorwacja→Bosnia→Albania=jeden mega-klaster. */
+    private const CLUSTER_MAX_DIAMETER_KM = 600.0;
+
+    /** TRANSIT - przejazd start <-> region. 2 kierowcow + autostrada = mozemy walic 1100km/dzien.
+     *  W praktyce ekipy robia 1 dlugi dzien tam + 1 dlugi dzien wracajac. */
+    private const TRANSIT_KM_PER_DAY = 1100.0;
+
+    /** IN-REGION - jazda miedzy atrakcjami. Drogi mieszane, krotkie hopki, mniej intensywnie. */
+    private const INTRA_KM_PER_DAY = 350.0;
+
+    /** Mnoznik straight-line -> droga rzeczywista dla TRANSIT (autostrada europejska ~1.15x). */
+    private const ROAD_FACTOR_TRANSIT = 1.15;
+
+    /** Mnoznik straight-line -> droga rzeczywista dla INTRA (drogi krajowe ~1.30x). */
+    private const ROAD_FACTOR_INTRA = 1.30;
 
     /** Dlugosc aktywnego dnia w minutach (zwiedzanie). */
     private const MINUTES_PER_DAY = 480; // 8h dziennie na zwiedzanie
@@ -48,9 +62,15 @@ final class RouteSuggestionService
 
     /**
      * Glowna metoda - zwraca propozycje tras dla trip'u.
-     * @return list<array{name:string,places:list<array<string,mixed>>,distance_km:float,days_est:int,countries:list<string>}>
+     *
+     * @param int|null $shortDays Bud zet dni dla wariantu "krotkiego" (np. min z trip_duration_days).
+     * @param int|null $fullDays  Bud zet dni dla wariantu "pelnego" (np. mediana z trip_duration_days).
+     *                            Jesli oba null lub takie same -> jeden wariant per klaster (jak dawniej).
+     *                            Jesli oba podane i rozne -> dwa warianty per klaster (krotki + pelny).
+     *
+     * @return list<array<string,mixed>>
      */
-    public function suggest(int $tripId): array
+    public function suggest(int $tripId, ?int $shortDays = null, ?int $fullDays = null): array
     {
         $trip = Trip::findById($tripId);
         if ($trip === null) return [];
@@ -86,20 +106,116 @@ final class RouteSuggestionService
             ];
         }
 
+        // Sanitize budzety - >0 i sensowne kolejnosc (short <= full)
+        $shortDays = ($shortDays !== null && $shortDays > 0) ? $shortDays : null;
+        $fullDays  = ($fullDays  !== null && $fullDays  > 0) ? $fullDays  : null;
+        if ($shortDays !== null && $fullDays !== null && $shortDays > $fullDays) {
+            [$shortDays, $fullDays] = [$fullDays, $shortDays];
+        }
+
         $suggestions = [];
         foreach ($clusters as $cluster) {
             if (count($cluster) < 2) continue;
-            $suggestions[] = $this->buildRoute($cluster, $startPoint);
+
+            // Brak budzetow -> klasyczne zachowanie (wszystkie miejsca w klastrze)
+            if ($shortDays === null && $fullDays === null) {
+                $suggestions[] = $this->buildRoute($cluster, $startPoint);
+                continue;
+            }
+
+            // Wariant pelny (mediana) - generujemy zawsze jesli mamy fullDays
+            $budget = $fullDays ?? $shortDays;
+            $full = $this->buildBudgetedRoute($cluster, $startPoint, $budget, 'pełna');
+            if ($full !== null) $suggestions[] = $full;
+
+            // Wariant krotki (min) - tylko jesli rozni sie od pelnego
+            if ($shortDays !== null && $fullDays !== null && $shortDays < $fullDays) {
+                $short = $this->buildBudgetedRoute($cluster, $startPoint, $shortDays, 'krótka');
+                if ($short !== null) $suggestions[] = $short;
+            }
         }
 
-        usort($suggestions, static fn($a, $b) => $b['avg_score'] <=> $a['avg_score']);
+        // Sort: najpierw avg score desc, potem fullDays przed shortDays (ten sam klaster - pelny pierwszy)
+        usort($suggestions, static function ($a, $b) {
+            $byScore = $b['avg_score'] <=> $a['avg_score'];
+            if ($byScore !== 0) return $byScore;
+            // ta sama score -> dluzsza trasa wyzej
+            return $b['days_est'] <=> $a['days_est'];
+        });
 
         return $suggestions;
     }
 
     /**
-     * Klastrowanie greedy single-linkage.
-     * Dla kazdego niezaklasterowanego: znajdz wszystkie w promieniu od dowolnego miejsca w aktualnym klastrze.
+     * Buduje trase z budzetem czasowym - dorzuca top-rated miejsca dopoki days_est <= maxDays.
+     * Reszta top-rated miejsc trafia do 'excluded' (transparentnie: "+X pominietych").
+     *
+     * @param list<array{place:TripPlace,avg:float,count:int}> $cluster (juz posortowany po avg desc na wejsciu suggest())
+     * @param array{name:string,lat:float,lng:float}|null $startPoint
+     */
+    private function buildBudgetedRoute(array $cluster, ?array $startPoint, int $maxDays, string $variantLabel): ?array
+    {
+        // Sortuj klaster po avg desc - bedziemy iterowac od najlepiej ocenionych
+        usort($cluster, static fn($a, $b) => $b['avg'] <=> $a['avg']);
+
+        $selected = [];
+        $excluded = [];
+        $consecutiveFails = 0;
+        // Optymalizacja: po N kolejnych failach przerywamy (kazdy kolejny kandydat ma nizsza ocene).
+        // Zostalo daje szanse blizszym geograficznie kandydatom dorzucic sie do wybranej trasy.
+        $maxConsecutiveFails = 8;
+
+        foreach ($cluster as $candidate) {
+            // Testuj: czy z tym kandydatem trasa nadal miesci sie w budzecie?
+            $test = array_merge($selected, [$candidate]);
+            $testRoute = $this->buildRoute($test, $startPoint);
+            if ($testRoute['days_est'] <= $maxDays) {
+                $selected = $test;
+                $consecutiveFails = 0;
+            } else {
+                $excluded[] = $candidate;
+                $consecutiveFails++;
+                if ($consecutiveFails >= $maxConsecutiveFails) {
+                    // Reszta klastra (nizej oceniana) automatycznie wykluczana
+                    $remainingIdx = array_search($candidate, $cluster, true);
+                    if ($remainingIdx !== false) {
+                        $tail = array_slice($cluster, $remainingIdx + 1);
+                        foreach ($tail as $rest) {
+                            $excluded[] = $rest;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Mniej niz 2 miejsca - bezsensowna trasa
+        if (count($selected) < 2) return null;
+
+        $route = $this->buildRoute($selected, $startPoint);
+        $route['variant'] = $variantLabel;
+        $route['budget_days'] = $maxDays;
+        $route['excluded'] = array_map(static function ($item) {
+            return [
+                'id'   => $item['place']->id,
+                'name' => $item['place']->name,
+                'avg'  => round($item['avg'], 2),
+            ];
+        }, $excluded);
+        $route['excluded_count'] = count($excluded);
+        // Zmodyfikuj nazwe by uwzglednic wariant
+        $route['name'] = $route['name'] . ' · ' . $variantLabel;
+
+        return $route;
+    }
+
+    /**
+     * Klastrowanie greedy single-linkage Z DIAMETER CAP.
+     * Miejsce trafia do klastra jesli:
+     *  (1) jest w CLUSTER_RADIUS_KM od KTOREGOKOLWIEK czlonka (single-linkage),
+     *  (2) ale jego dolaczenie NIE rozwala srednicy klastra ponad CLUSTER_MAX_DIAMETER_KM.
+     * Bez (2) tworzylyby sie lancuchy obejmujace pol-Europy.
+     *
      * @param list<array{place:TripPlace,avg:float,count:int}> $scored
      * @return list<list<array{place:TripPlace,avg:float,count:int}>>
      */
@@ -112,23 +228,42 @@ final class RouteSuggestionService
             $seed = array_shift($remaining);
             $cluster = [$seed];
 
-            // Single-linkage: dodaj wszystkie w promieniu od KTÓRYKOLWIEK punktu klastra
             $changed = true;
             while ($changed) {
                 $changed = false;
                 foreach ($remaining as $key => $item) {
+                    // (1) single-linkage: w radiusie od dowolnego czlonka
+                    $nearAny = false;
                     foreach ($cluster as $member) {
                         $d = $this->haversine(
                             $member['place']->lat, $member['place']->lng,
                             $item['place']->lat, $item['place']->lng
                         );
                         if ($d <= self::CLUSTER_RADIUS_KM) {
-                            $cluster[] = $item;
-                            unset($remaining[$key]);
-                            $changed = true;
+                            $nearAny = true;
                             break;
                         }
                     }
+                    if (!$nearAny) continue;
+
+                    // (2) diameter cap: po dolaczeniu zaden pair w klastrze nie moze przekroczyc MAX_DIAMETER
+                    $diameterOk = true;
+                    foreach ($cluster as $member) {
+                        $d = $this->haversine(
+                            $member['place']->lat, $member['place']->lng,
+                            $item['place']->lat, $item['place']->lng
+                        );
+                        if ($d > self::CLUSTER_MAX_DIAMETER_KM) {
+                            $diameterOk = false;
+                            break;
+                        }
+                    }
+                    if (!$diameterOk) continue;
+
+                    $cluster[] = $item;
+                    unset($remaining[$key]);
+                    $changed = true;
+                    break; // restart - moze inny czlonek otworzy nowa scieezke
                 }
                 $remaining = array_values($remaining);
             }
@@ -189,7 +324,7 @@ final class RouteSuggestionService
             );
         }
 
-        // Doliczam start -> pierwsze + ostatnie -> start (round trip)
+        // Doliczam start -> pierwsze + ostatnie -> start (round trip = TRANSIT phase)
         $startKm = 0.0;
         if ($startPoint !== null && count($ordered) > 0) {
             $first = $ordered[0];
@@ -198,16 +333,22 @@ final class RouteSuggestionService
             $startKm += $this->haversine($last['place']->lat, $last['place']->lng, $startPoint['lat'], $startPoint['lng']);
         }
 
-        // Dystans drogowy jest typowo 1.3x linii prostej
-        $drivingKm = ($totalKm + $startKm) * 1.3;
+        // Podzial na 2 fazy:
+        //  TRANSIT (dom -> region -> dom) - autostrada, 2 kierowcow, 1100km/dzien aggressive
+        //  INTRA (miedzy atrakcjami)     - drogi krajowe, 350km/dzien plus zwiedzanie
+        $transitKm = $startKm * self::ROAD_FACTOR_TRANSIT;
+        $intraKm   = $totalKm * self::ROAD_FACTOR_INTRA;
+        $drivingKm = $transitKm + $intraKm; // dla wyswietlania calkowity dystans drogowy
 
-        // Dni: czas zwiedzania (suma visit_minutes / minutowy dzien) + driving days
+        // Dni: transit + (intra-drive + visits)
         $totalVisitMinutes = 0;
         foreach ($ordered as $item) {
             $totalVisitMinutes += $item['place']->visitMinutes;
         }
-        $visitDays = $totalVisitMinutes / self::MINUTES_PER_DAY;
-        $days = (int) max(1, ceil($visitDays + $drivingKm / self::DAILY_DRIVE_KM));
+        $visitDays    = $totalVisitMinutes / self::MINUTES_PER_DAY;
+        $transitDays  = $transitKm / self::TRANSIT_KM_PER_DAY;
+        $intraDays    = $intraKm  / self::INTRA_KM_PER_DAY;
+        $days = (int) max(1, ceil($transitDays + $intraDays + $visitDays));
 
         // Kraje
         $countries = [];

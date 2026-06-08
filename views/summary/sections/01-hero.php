@@ -1,6 +1,7 @@
 <?php
 /**
- * Sekcja 1: Hero - banner + nazwa + statystyka + avatary.
+ * Sekcja 1: Hero - landing v2 design.
+ * Banner u gory (z gradientem na dole), pod nim eyebrow + H1 + lead + stats + avatary.
  * @var \App\Models\Trip $trip
  * @var \App\Services\SummaryAggregator $agg
  */
@@ -10,9 +11,7 @@ $total        = $agg->totalCount();
 $colors       = $agg->colorMap();
 $anonymous    = $agg->isAnonymous();
 
-// Inteligentne dopasowanie wysokosci sekcji do proporcji bannera.
-// Odczytujemy wymiary uploadowanego obrazka i ustawiamy aspect-ratio,
-// dzieki czemu caly banner jest widoczny niezaleznie od jego rozmiaru.
+// Aspect bannera (do limitowania wysokosci na wide screens)
 $bannerAspect = null;
 if ($trip->bannerImage) {
     $publicDir = dirname(__DIR__, 3) . '/public/';
@@ -24,72 +23,122 @@ if ($trip->bannerImage) {
         }
     }
 }
+
+$fmtDate = static fn(string $d) => date('d.m.Y', strtotime($d));
 ?>
-<section class="relative overflow-hidden flex items-center md:items-center"
-    <?php if ($bannerAspect !== null): ?>style="--banner-aspect: <?= number_format($bannerAspect, 4, '.', '') ?>;"<?php endif; ?>>
+<section class="summary-hero">
+    <span class="sh-blob sh-blob-1"></span>
+    <span class="sh-blob sh-blob-2"></span>
+
     <?php if ($trip->bannerImage): ?>
-        <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
-             class="absolute inset-0 w-full h-full object-cover object-center opacity-30 dark:opacity-25"
-             fetchpriority="high" decoding="async">
-        <!-- Gradient overlay - czytelność tekstu nad bannerem -->
-        <div class="absolute inset-0 bg-gradient-to-t from-cream via-cream/70 to-cream/30 dark:from-night dark:via-night/70 dark:to-night/30"></div>
+    <div class="sh-banner-wrap">
+        <img class="sh-banner" src="<?= e(asset($trip->bannerImage)) ?>" alt="" fetchpriority="high" decoding="async">
+        <div class="sh-banner-fade"></div>
+    </div>
     <?php endif; ?>
-    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-cream via-cream to-accent/20 dark:from-night dark:via-night dark:to-secondary/10"></div>
 
-    <div class="relative w-full mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-16 md:py-24 3xl:py-32">
-
-        <span class="inline-block mb-4 px-4 py-1.5 rounded-full text-sm font-semibold bg-primary/10 text-primary backdrop-blur">
-            <?= e(date('d.m', strtotime($trip->dateFrom))) ?> – <?= e(date('d.m.Y', strtotime($trip->dateTo))) ?>
+    <div class="wrap sh-body">
+        <span class="eyebrow eyebrow--teal sh-dates">
+            <span class="iconify" data-icon="ph:calendar-blank-bold"></span>
+            <?= e($fmtDate($trip->dateFrom)) ?> – <?= e($fmtDate($trip->dateTo)) ?>
         </span>
 
-        <h1 class="font-display font-bold tracking-tight text-5xl md:text-7xl 3xl:text-8xl text-ink dark:text-pale mb-3">
-            <?= e($trip->name) ?>
-        </h1>
+        <h1 class="sh-title"><?= e($trip->name) ?></h1>
 
         <?php if (!empty($trip->description)): ?>
-            <p class="text-lg md:text-xl 3xl:text-2xl text-mist max-w-3xl mb-6 leading-relaxed">
-                <?= nl2br(e($trip->description)) ?>
-            </p>
+        <p class="sh-lead"><?= nl2br(e($trip->description)) ?></p>
         <?php endif; ?>
 
-        <div class="flex flex-wrap items-center gap-4 text-sm md:text-base text-mist mb-8">
-            <span class="font-mono">
-                <strong class="text-ink dark:text-pale text-2xl md:text-3xl 3xl:text-4xl"><?= $completed ?></strong>
-                / <?= $total ?> wypełniło ankietę
+        <div class="sh-stats">
+            <span class="sh-stat-inline">
+                <span class="iconify" data-icon="ph:check-circle-fill" style="color:var(--green);font-size:18px"></span>
+                <b><?= $completed ?> z <?= $total ?></b> wypełniło ankietę
             </span>
             <?php if ($anonymous): ?>
-                <span class="px-3 py-1 rounded-full text-xs font-medium bg-mist/15">tryb anonimowy</span>
+            <span class="sh-stat-inline sh-anon-inline">
+                <span class="iconify" data-icon="ph:eye-slash-bold" style="color:var(--teal-600);font-size:16px"></span>
+                Tryb anonimowy
+            </span>
             <?php endif; ?>
         </div>
 
         <!-- Avatary uczestnikow -->
-        <div class="flex flex-wrap gap-3 md:gap-4">
+        <div class="sh-avatars">
             <?php foreach ($participants as $i => $p):
                 $color = $colors[$p->id] ?? '#FF6B35';
                 $displayName = $anonymous ? ('Uczestnik ' . ($i + 1)) : $p->nickname;
                 $isCompleted = $p->isCompleted();
             ?>
-            <div class="text-center" title="<?= e($displayName . ($isCompleted ? ' - wypełnił' : ' - nie wypełnił')) ?>">
-                <div class="relative w-14 h-14 md:w-16 md:h-16 3xl:w-20 3xl:h-20 mb-1.5">
+            <div class="sh-avatar" title="<?= e($displayName . ($isCompleted ? ' · wypełnił' : ' · oczekuje')) ?>">
+                <div class="sh-avatar-pic">
                     <?php if (!$anonymous && $p->avatarPath): ?>
-                        <img src="<?= e(asset($p->avatarPath)) ?>" alt=""
-                             class="w-full h-full rounded-full object-cover border-4"
-                             style="border-color: <?= e($color) ?>">
+                        <img src="<?= e(asset($p->avatarPath)) ?>" alt="" style="border-color:<?= e($color) ?>">
                     <?php else: ?>
-                        <div class="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
-                             style="background: <?= e($color) ?>">
+                        <span class="sh-avatar-init" style="background:<?= e($color) ?>;border-color:<?= e($color) ?>">
                             <?= e($anonymous ? (string) ($i + 1) : mb_strtoupper(mb_substr($p->nickname, 0, 1))) ?>
-                        </div>
+                        </span>
                     <?php endif; ?>
                     <?php if ($isCompleted): ?>
-                        <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-secondary text-white text-xs flex items-center justify-center border-2 border-cream dark:border-night">✓</span>
+                        <span class="sh-avatar-check"><span class="iconify" data-icon="ph:check-bold"></span></span>
                     <?php endif; ?>
                 </div>
-                <div class="text-xs md:text-sm font-medium text-ink dark:text-pale">
-                    <?= e($displayName) ?>
-                </div>
+                <div class="sh-avatar-name"><?= e($displayName) ?></div>
             </div>
             <?php endforeach; ?>
         </div>
     </div>
 </section>
+
+<style>
+/* ============================================================
+   SUMMARY HERO - landing v2 design
+   ============================================================ */
+.summary-hero { position: relative; padding: 0 0 160px; overflow: hidden; }
+.sh-blob { position: absolute; border-radius: 50%; filter: blur(8px); opacity: .55; pointer-events: none; z-index: 0; }
+.sh-blob-1 { width: 460px; height: 460px; background: radial-gradient(circle, rgba(255,107,53,0.30), transparent 65%); top: -100px; right: -120px; }
+.sh-blob-2 { width: 380px; height: 380px; background: radial-gradient(circle, rgba(14,155,170,0.22), transparent 65%); bottom: -100px; left: -120px; }
+
+.sh-banner-wrap { position: relative; width: 100%; line-height: 0; }
+.sh-banner { width: 100%; height: auto; display: block; }
+.sh-banner-fade { position: absolute; inset: auto 0 0 0; height: 30%;
+  background: linear-gradient(to bottom, transparent, var(--bg)); pointer-events: none; }
+
+.sh-body { position: relative; z-index: 1; max-width: 1100px; padding: 112px 24px 0; line-height: 1.6;
+  display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+.sh-dates { font-size: 14px; padding: 9px 18px; }
+.sh-dates .iconify { font-size: 16px; }
+
+.sh-title {
+  font-family: var(--font-display); font-weight: 800; letter-spacing: -0.025em; line-height: 1.04;
+  font-size: clamp(42px, 6.2vw, 80px); color: var(--heading); margin: 20px 0 16px;
+  text-wrap: balance;
+}
+
+.sh-lead { font-size: clamp(17px, 1.6vw, 22px); color: var(--fg-2); line-height: 1.55; margin: 0 0 24px; max-width: 720px;
+  text-wrap: pretty; }
+
+.sh-stats { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 32px; }
+.sh-stat-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--fg-2); font-weight: 500; }
+.sh-stat-inline b { color: var(--heading); font-weight: 700; }
+.sh-anon-inline { color: var(--teal-600); font-weight: 600; }
+
+/* Avatary - centruje */
+.sh-avatars { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px 22px; }
+.sh-avatar { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sh-avatar-pic { position: relative; width: 60px; height: 60px; }
+.sh-avatar-pic img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid; box-shadow: var(--sh-sm); }
+.sh-avatar-init { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%;
+  color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 22px; border: 3px solid; box-shadow: var(--sh-sm); }
+.sh-avatar-check { position: absolute; bottom: -2px; right: -2px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--green); color: #fff; display: grid; place-items: center; border: 2px solid var(--bg); }
+.sh-avatar-check .iconify { font-size: 12px; }
+.sh-avatar-name { font-size: 13px; font-weight: 700; color: var(--fg); }
+
+@media (max-width: 720px) {
+  .summary-hero { padding-bottom: var(--s8); }
+  .sh-stat-num { font-size: 32px; }
+  .sh-avatar-pic { width: 52px; height: 52px; }
+  .sh-avatar-init { font-size: 19px; }
+}
+</style>

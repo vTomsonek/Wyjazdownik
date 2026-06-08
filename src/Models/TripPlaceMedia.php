@@ -23,6 +23,7 @@ final class TripPlaceMedia
         public readonly ?string $caption,
         public readonly int $sortOrder,
         public readonly string $createdAt,
+        public readonly ?int $participantId = null,
     ) {}
 
     public static function findById(int $id): ?self
@@ -64,16 +65,17 @@ final class TripPlaceMedia
     {
         $pdo = Connection::get();
         $stmt = $pdo->prepare(
-            'INSERT INTO trip_place_media (place_id, type, file_path, url, caption, sort_order)
-             VALUES (:place_id, :type, :file_path, :url, :caption, :sort_order)'
+            'INSERT INTO trip_place_media (place_id, participant_id, type, file_path, url, caption, sort_order)
+             VALUES (:place_id, :participant_id, :type, :file_path, :url, :caption, :sort_order)'
         );
         $stmt->execute([
-            'place_id'   => $data['place_id'],
-            'type'       => $data['type'],
-            'file_path'  => $data['file_path'] ?? null,
-            'url'        => $data['url'] ?? null,
-            'caption'    => $data['caption'] ?? null,
-            'sort_order' => $data['sort_order'] ?? 0,
+            'place_id'       => $data['place_id'],
+            'participant_id' => $data['participant_id'] ?? null,
+            'type'           => $data['type'],
+            'file_path'      => $data['file_path'] ?? null,
+            'url'            => $data['url'] ?? null,
+            'caption'        => $data['caption'] ?? null,
+            'sort_order'     => $data['sort_order'] ?? 0,
         ]);
         return self::findById((int) $pdo->lastInsertId());
     }
@@ -86,27 +88,29 @@ final class TripPlaceMedia
     public function toArray(): array
     {
         return [
-            'id'         => $this->id,
-            'place_id'   => $this->placeId,
-            'type'       => $this->type,
-            'file_path'  => $this->filePath,
-            'url'        => $this->url,
-            'caption'    => $this->caption,
-            'sort_order' => $this->sortOrder,
+            'id'             => $this->id,
+            'place_id'       => $this->placeId,
+            'participant_id' => $this->participantId,
+            'type'           => $this->type,
+            'file_path'      => $this->filePath,
+            'url'            => $this->url,
+            'caption'        => $this->caption,
+            'sort_order'     => $this->sortOrder,
         ];
     }
 
     private static function fromRow(array $row): self
     {
         return new self(
-            id:        (int) $row['id'],
-            placeId:   (int) $row['place_id'],
-            type:      (string) $row['type'],
-            filePath:  $row['file_path'] !== null ? (string) $row['file_path'] : null,
-            url:       $row['url']       !== null ? (string) $row['url']       : null,
-            caption:   $row['caption']   !== null ? (string) $row['caption']   : null,
-            sortOrder: (int) $row['sort_order'],
-            createdAt: (string) $row['created_at'],
+            id:            (int) $row['id'],
+            placeId:       (int) $row['place_id'],
+            type:          (string) $row['type'],
+            filePath:      $row['file_path'] !== null ? (string) $row['file_path'] : null,
+            url:           $row['url']       !== null ? (string) $row['url']       : null,
+            caption:       $row['caption']   !== null ? (string) $row['caption']   : null,
+            sortOrder:     (int) $row['sort_order'],
+            createdAt:     (string) $row['created_at'],
+            participantId: isset($row['participant_id']) && $row['participant_id'] !== null ? (int) $row['participant_id'] : null,
         );
     }
 }

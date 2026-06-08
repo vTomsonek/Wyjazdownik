@@ -66,15 +66,17 @@ if ($current !== null) $runs[] = $current;
 usort($runs, static fn($a, $b) => $b['length'] <=> $a['length'] ?: strcmp($a['start'], $b['start']));
 $topRuns = array_slice($runs, 0, 5);
 
+// Skala dostepnosci - kazdy poziom ma WLASNY hue (nie tylko opacity)
+// Klasy .cal-* definiowane w summary-overlay.css - gwarantowane kolory
 $intensityClass = static function (int $avail, int $total): string {
-    if ($total === 0)            return 'bg-mist/10';
+    if ($total === 0)            return 'cal-empty';
+    if ($avail === $total)       return 'cal-7';   // 100% = emerald (zielony)
     $r = $avail / $total;
-    if ($r >= 1.0)               return 'bg-secondary text-white';
-    if ($r >= 0.85)              return 'bg-secondary/70 text-white';
-    if ($r >= 0.65)              return 'bg-accent/70 text-ink';
-    if ($r >= 0.4)               return 'bg-orange-300 text-ink';
-    if ($r > 0)                  return 'bg-red-200 text-red-700';
-    return 'bg-red-300 text-red-800 line-through';
+    if ($r >= 0.83)              return 'cal-6';   // ~85%+ = teal solid
+    if ($r >= 0.65)              return 'cal-5';   // ~70%+ = aqua jasny
+    if ($r >= 0.4)               return 'cal-4';   // ~50%+ = sun yellow
+    if ($r > 0)                  return 'cal-3';   // <50% = orange
+    return 'cal-0';                                // 0 = red przekreslony
 };
 
 $monthNames = ['', 'Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
@@ -88,17 +90,13 @@ foreach ($days as $d) {
 }
 ?>
 
-<section class="bg-paper dark:bg-deep py-16 md:py-24 3xl:py-32 border-t border-mist/15">
-    <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="section section--cream">
+    <div class="wrap">
 
-        <header class="mb-10 md:mb-14 text-center">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-secondary/15 text-secondary">SEKCJA 2 / 7</span>
-            <h2 class="font-display font-bold text-3xl md:text-5xl 3xl:text-6xl text-ink dark:text-pale mb-3">
-                📅 Najlepsze terminy
-            </h2>
-            <p class="text-mist text-lg max-w-2xl mx-auto">
-                Im ciemniejszy zielony - tym więcej osób z ekipy może w danym dniu. Czerwony = ktoś jest niedostępny.
-            </p>
+        <header class="sec-head">
+            <span class="eyebrow eyebrow--teal"><span class="iconify" data-icon="ph:calendar-blank-bold"></span> Najlepsze terminy</span>
+            <h2 style="margin-top:18px">Kiedy ekipa się pokrywa</h2>
+            <p>Zielony = wszyscy mogą. Turkusowy = prawie wszyscy. Żółty/pomarańczowy = połowa. Czerwony = ktoś jest niedostępny.</p>
         </header>
 
         <?php if ($mode === 'block_unavailable'): ?>

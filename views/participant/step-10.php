@@ -9,8 +9,8 @@ $placesUrl = url('/p/' . $participant->accessToken . '/atrakcje');
 ?>
 
 <header class="mb-6">
-    <span class="text-3xl mb-2 block">🗺️</span>
-    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale">Mapa atrakcji</h2>
+    <span class="eyebrow eyebrow--teal" style="margin-bottom:14px"><span class="iconify" data-icon="ph:map-pin-bold"></span> Krok 10: Mapa atrakcji</span>
+    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale" style="margin-top:14px">🗺️ Wspólna mapa miejsc</h2>
     <p class="text-mist mt-2">
         Dawniej w tym miejscu rysowało się pinezki w ankiecie. Teraz mamy coś lepszego —
         <strong class="text-ink dark:text-pale">interaktywną mapę atrakcji</strong> z autocomplete Google,
@@ -50,9 +50,9 @@ $placesUrl = url('/p/' . $participant->accessToken . '/atrakcje');
             </div>
         </div>
 
-        <a href="<?= e($placesUrl) ?>" target="_blank"
-           class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-105 transition shadow-pop">
-            🗺️ Otwórz mapę atrakcji
+        <a href="<?= e($placesUrl) ?>" target="_blank" class="btn btn-primary">
+            <span class="iconify" data-icon="ph:map-trifold-bold"></span>
+            Otwórz mapę atrakcji
         </a>
 
         <p class="mt-3 text-xs text-mist">

@@ -1,64 +1,57 @@
 <?php
 /**
- * Lista kafelków wyjazdów (grid).
+ * Grid kart wyjazdów - landing v2 design.
  * @var list<array{trip:\App\Models\Trip,totalParticipants:int,completed:int}> $trips
  */
 ?>
-<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+<div class="trip-grid">
     <?php foreach ($trips as $entry):
-        $trip       = $entry['trip'];
-        $total      = $entry['totalParticipants'];
-        $completed  = $entry['completed'];
-        $progress   = $total > 0 ? (int) round($completed / $total * 100) : 0;
+        $trip      = $entry['trip'];
+        $total     = $entry['totalParticipants'];
+        $completed = $entry['completed'];
+        $progress  = $total > 0 ? (int) round($completed / $total * 100) : 0;
     ?>
-    <article class="rounded-2xl bg-paper dark:bg-deep border border-mist/15 overflow-hidden hover:shadow-pop transition flex flex-col">
+    <article class="trip-card">
 
         <?php if ($trip->bannerImage): ?>
-            <img src="<?= e(asset($trip->bannerImage)) ?>" alt=""
-                 class="w-full h-32 object-cover" loading="lazy">
-        <?php else: ?>
-            <div class="w-full h-32 bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-5xl">
-                <?= ['plaza' => 'PL'][''] ?? '' ?>
-                <span aria-hidden="true">🏖️</span>
+            <div class="trip-banner">
+                <img src="<?= e(asset($trip->bannerImage)) ?>" alt="" loading="lazy">
             </div>
+        <?php else: ?>
+            <div class="trip-banner trip-banner--placeholder" aria-hidden="true">🏖️</div>
         <?php endif; ?>
 
-        <div class="p-5 flex-1 flex flex-col">
+        <div class="trip-body">
             <?php if (!$trip->isActive): ?>
-                <span class="inline-block mb-2 px-2 py-0.5 rounded-full text-xs font-medium bg-mist/20 text-mist self-start">archiwum</span>
+                <span class="trip-tag">archiwum</span>
             <?php endif; ?>
 
-            <h2 class="font-display font-bold text-xl text-ink dark:text-pale mb-1">
-                <?= e($trip->name) ?>
-            </h2>
-            <p class="text-xs text-mist mb-3 font-mono">
-                <?= e(date('d.m', strtotime($trip->dateFrom))) ?> – <?= e(date('d.m.Y', strtotime($trip->dateTo))) ?>
-            </p>
+            <div>
+                <h2 class="trip-name"><?= e($trip->name) ?></h2>
+                <p class="trip-dates">
+                    <?= e(date('d.m', strtotime($trip->dateFrom))) ?> – <?= e(date('d.m.Y', strtotime($trip->dateTo))) ?>
+                </p>
+            </div>
 
-            <div class="mb-4">
-                <div class="flex justify-between text-xs text-mist mb-1">
+            <div class="trip-progress">
+                <div class="trip-progress-meta">
                     <span>Wypełnione</span>
-                    <span class="font-mono"><?= $completed ?>/<?= $total ?></span>
+                    <span class="nums"><?= $completed ?>/<?= $total ?> · <?= $progress ?>%</span>
                 </div>
-                <div class="h-2 rounded-full bg-mist/15 overflow-hidden">
-                    <div class="h-full bg-primary transition-all" style="width: <?= $progress ?>%"></div>
+                <div class="trip-progress-bar">
+                    <div class="trip-progress-fill" style="width: <?= $progress ?>%"></div>
                 </div>
             </div>
 
-            <div class="mt-auto flex flex-wrap gap-2">
-                <a href="<?= e(url('/admin/trips/' . $trip->id . '/participants')) ?>"
-                   class="flex-1 text-center px-3 py-2 rounded-full bg-primary-deep text-white text-sm font-medium hover:bg-primary transition">
-                    Uczestnicy
+            <div class="trip-actions">
+                <a href="<?= e(url('/admin/trips/' . $trip->id . '/participants')) ?>" class="btn btn-primary">
+                    <span class="iconify" data-icon="ph:users-three-bold"></span> Uczestnicy
                 </a>
-                <a href="<?= e(url('/admin/trips/' . $trip->id . '/edit')) ?>"
-                   class="px-3 py-2 rounded-full bg-mist/15 text-ink dark:text-pale text-sm font-medium hover:bg-primary/15 transition"
-                   title="Edytuj wyjazd">
-                    Edytuj
+                <a href="<?= e(url('/admin/trips/' . $trip->id . '/edit')) ?>" class="btn btn-ghost compact" title="Edytuj wyjazd" aria-label="Edytuj">
+                    <span class="iconify" data-icon="ph:pencil-simple-bold"></span>
                 </a>
-                <a href="<?= e(url('/summary/' . $trip->summaryPublicToken)) ?>" target="_blank"
-                   class="px-3 py-2 rounded-full bg-mist/15 text-ink dark:text-pale text-sm font-medium hover:bg-primary/15 transition"
-                   title="Podsumowanie publiczne (TV)">
-                    TV
+                <a href="<?= e(url('/summary/' . $trip->summaryPublicToken)) ?>" target="_blank" rel="noopener" class="btn btn-ghost compact" title="Podsumowanie publiczne (TV)" aria-label="TV">
+                    <span class="iconify" data-icon="ph:television-simple-bold"></span>
                 </a>
             </div>
         </div>

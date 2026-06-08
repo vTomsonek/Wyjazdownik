@@ -51,6 +51,69 @@ final class TripPlace
         return $out;
     }
 
+    /**
+     * Sprawdza czy w danym tripie istnieje juz miejsce o tym samym google_place_id
+     * (Google gwarantuje unikalnosc) ALBO w bliskosci geograficznej (default 50m -
+     * dla miejsc dodanych z mapy bez google_place_id).
+     *
+     * @return self|null Istniejacy duplikat, albo null jezeli mozemy dodac.
+     */
+    public static function findDuplicateInTrip(
+        int $tripId,
+        float $lat,
+        float $lng,
+        ?string $googlePlaceId = null,
+        float $maxMeters = 50.0
+    ): ?self {
+        $pdo = Connection::get();
+
+        // 1) Match po google_place_id - najbardziej wiarygodne
+        if ($googlePlaceId !== null && $googlePlaceId !== '') {
+            $stmt = $pdo->prepare(
+                'SELECT * FROM trip_places
+                 WHERE trip_id = :tid AND google_place_id = :gpid
+                 LIMIT 1'
+            );
+            $stmt->execute(['tid' => $tripId, 'gpid' => $googlePlaceId]);
+            $row = $stmt->fetch();
+            if ($row) return self::fromRow($row);
+        }
+
+        // 2) Match po bliskosci (haversine). Najpierw bounding box dla wydajnosci,
+        //    potem dokladnie haversine w PHP. 0.0005 stopnia (~55m) jako szeroki margines.
+        $delta = max($maxMeters / 111000.0, 0.0005);
+        $stmt = $pdo->prepare(
+            'SELECT * FROM trip_places
+             WHERE trip_id = :tid
+               AND lat BETWEEN :latMin AND :latMax
+               AND lng BETWEEN :lngMin AND :lngMax'
+        );
+        $stmt->execute([
+            'tid'    => $tripId,
+            'latMin' => $lat - $delta,
+            'latMax' => $lat + $delta,
+            'lngMin' => $lng - $delta,
+            'lngMax' => $lng + $delta,
+        ]);
+        foreach ($stmt->fetchAll() as $row) {
+            $other = self::fromRow($row);
+            if (self::haversineMeters($lat, $lng, $other->lat, $other->lng) <= $maxMeters) {
+                return $other;
+            }
+        }
+        return null;
+    }
+
+    private static function haversineMeters(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $R = 6371000.0;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2 +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+        return 2 * $R * asin(sqrt($a));
+    }
+
     public static function create(array $data): self
     {
         $pdo = Connection::get();

@@ -259,20 +259,25 @@ CREATE TABLE `trip_place_votes` (
 -- trip_place_media - zdjecia, wideo, linki dla atrakcji
 -- ----------------------------------------------------------------------------
 CREATE TABLE `trip_place_media` (
-    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `place_id`   BIGINT UNSIGNED NOT NULL,
-    `type`       ENUM('image', 'video', 'link') NOT NULL,
-    `file_path`  VARCHAR(500) NULL DEFAULT NULL,
-    `url`        VARCHAR(500) NULL DEFAULT NULL,
-    `caption`    VARCHAR(300) NULL DEFAULT NULL,
-    `sort_order` INT NOT NULL DEFAULT 0,
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `place_id`       BIGINT UNSIGNED NOT NULL,
+    `participant_id` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `type`           ENUM('image', 'video', 'link') NOT NULL,
+    `file_path`      VARCHAR(500) NULL DEFAULT NULL,
+    `url`            VARCHAR(500) NULL DEFAULT NULL,
+    `caption`        VARCHAR(300) NULL DEFAULT NULL,
+    `sort_order`     INT NOT NULL DEFAULT 0,
+    `created_at`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `idx_media_place` (`place_id`, `sort_order`),
-    KEY `idx_media_type`  (`place_id`, `type`),
+    KEY `idx_media_place`       (`place_id`, `sort_order`),
+    KEY `idx_media_type`        (`place_id`, `type`),
+    KEY `idx_media_participant` (`participant_id`),
     CONSTRAINT `fk_media_place`
         FOREIGN KEY (`place_id`) REFERENCES `trip_places` (`id`)
-        ON DELETE CASCADE ON UPDATE CASCADE
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_media_participant`
+        FOREIGN KEY (`participant_id`) REFERENCES `participants` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------

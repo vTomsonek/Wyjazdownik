@@ -56,30 +56,35 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
     }
     </script>
 
-    <!-- Dark mode bootstrap (przed CSS żeby nie było mignięcia) -->
+    <!-- Theme init - dual (wyj-theme + theme). Anti-FOUC. -->
     <script>
         (function () {
             try {
-                const stored = localStorage.getItem('theme');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if (stored === 'dark' || (!stored && prefersDark)) {
+                var wyj = localStorage.getItem('wyj-theme');
+                var old = localStorage.getItem('theme');
+                var prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var isDark = wyj === 'dark' || old === 'dark' || (!wyj && !old && prefers);
+                if (isDark) {
                     document.documentElement.classList.add('dark');
+                    document.documentElement.setAttribute('data-theme', 'dark');
                 }
             } catch (e) { /* noop */ }
         })();
     </script>
 
-    <!-- Critical CSS inline - LCP element rysuje sie bez czekania na tailwind.css -->
+    <!-- Critical CSS inline - landing v2 palette -->
     <style>
         *,::before,::after{box-sizing:border-box;border:0 solid #e5e7eb}
         html{line-height:1.5;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
-        body{margin:0;min-height:100vh;display:flex;flex-direction:column;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#FFF8F0;color:#1A1A2E}
-        html.dark body{background:#0F1419;color:#F0F4F8}
+        body{margin:0;min-height:100vh;display:flex;flex-direction:column;font-family:"Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#FFF8F3;color:#2C2440}
+        html.dark body{background:#14101F;color:#E9E3F3}
         main{flex:1 1 0%}
-        h1,h2,h3,h4{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;margin:0}
+        h1,h2,h3,h4{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;letter-spacing:-0.02em;margin:0;color:#211733}
+        html.dark h1,html.dark h2,html.dark h3,html.dark h4{color:#FBF4EE}
         a{color:inherit;text-decoration:inherit}
         img,svg{display:block;max-width:100%;height:auto}
         button{cursor:pointer;font-family:inherit;background:none;border:0;padding:0;color:inherit}
+        ::selection{background:#FF6B35;color:#fff}
         /* --- Critical Tailwind subset dla hero (above the fold) --- */
         .relative{position:relative}.absolute{position:absolute}.inset-0{inset:0}.-z-10{z-index:-10}.overflow-hidden{overflow:hidden}
         .mx-auto{margin-left:auto;margin-right:auto}.max-w-7xl{max-width:80rem}.max-w-xl{max-width:36rem}.max-w-md{max-width:28rem}
@@ -107,38 +112,67 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
         @media (min-width:1920px){.\33xl\:pt-24{padding-top:6rem}.\33xl\:pb-36{padding-bottom:9rem}.\33xl\:max-w-2xl{max-width:42rem}.\33xl\:max-w-\[1600px\]{max-width:1600px}.\33xl\:text-2xl{font-size:1.5rem;line-height:2rem}.\33xl\:text-7xl{font-size:4.5rem;line-height:1}}
     </style>
 
-    <!-- Tailwind - production build async (preload + media-print swap) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://api.iconify.design" crossorigin>
+
+    <!-- Tailwind - production build async -->
     <link rel="preload" as="style" href="<?= e(asset('assets/css/tailwind.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/tailwind.css')) ?>" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="<?= e(asset('assets/css/tailwind.css')) ?>"></noscript>
 
-    <!-- Google Fonts - subset (tylko uzywane wagi) + display=swap + async load -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
-    <link rel="stylesheet" media="print" onload="this.media='all'"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
-    <noscript>
-        <link rel="stylesheet"
-              href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
-    </noscript>
-
+    <!-- Landing v2 system - tokeny + komponenty. Po Tailwindzie = wygrywa specificity. -->
+    <link rel="stylesheet" href="<?= e(asset('assets/css/landing.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
+    <!-- Overlay - mapowanie Tailwind classes na landing tokeny -->
+    <link rel="stylesheet" href="<?= e(asset('assets/css/summary-overlay.css')) ?>">
 
     <link rel="icon" type="image/svg+xml" href="<?= e(asset('assets/img/favicon.svg')) ?>">
+    <link rel="icon" type="image/png" sizes="256x256" href="<?= e(asset('assets/img/logo-256.png')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('assets/img/logo-256.png')) ?>">
+
+    <!-- Iconify - dla Phosphor + simple-icons -->
+    <script src="https://code.iconify.design/3/3.1.1/iconify.min.js" defer></script>
 </head>
-<body class="font-body bg-cream text-ink dark:bg-night dark:text-pale min-h-screen flex flex-col antialiased <?= e($bodyClass) ?>">
+<body class="<?= e($bodyClass) ?>">
 
-    <?php require BASE_PATH . '/views/partials/header.php'; ?>
+    <header class="nav">
+        <div class="wrap nav-inner">
+            <a class="logo" href="<?= e(url('/')) ?>" aria-label="Wyjazdownik.pl">
+                <span class="logo-mark"><span class="iconify" data-icon="ph:airplane-tilt-fill"></span></span>
+                <span class="logo-word">wyjazdown<span class="idot">ı</span>k<span class="tld">.pl</span></span>
+            </a>
+            <nav class="nav-links"></nav>
+            <div class="nav-cta">
+                <button class="theme-toggle" id="themeToggle" aria-label="Przełącz motyw">
+                    <span class="iconify ic-dark" data-icon="ph:moon-stars-bold"></span>
+                    <span class="iconify ic-light" data-icon="ph:sun-bold"></span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-    <main class="flex-1">
+    <main>
         <?= $content ?>
     </main>
 
-    <?php require BASE_PATH . '/views/partials/footer.php'; ?>
+    <?php require BASE_PATH . '/views/partials/landing/footer.php'; ?>
 
     <script src="<?= e(asset('assets/js/app.js')) ?>"></script>
+    <!-- Landing v2 interactions (theme toggle) -->
+    <script src="<?= e(asset('assets/js/landing.js')) ?>" defer></script>
+
+    <!-- Sync data-theme <-> .dark -->
+    <script>
+    (function () {
+        var html = document.documentElement;
+        var mo = new MutationObserver(function () {
+            if (html.getAttribute('data-theme') === 'dark') html.classList.add('dark');
+            else html.classList.remove('dark');
+        });
+        mo.observe(html, { attributes: true, attributeFilter: ['data-theme'] });
+    })();
+    </script>
 
     <!-- Twemoji - asynchronicznie, parse po idle (nie blokuje FCP/LCP) -->
     <style>

@@ -1,0 +1,202 @@
+/* ============================================================
+   Summary page - landing v2 theme overlay
+   Adujstuje fonty, kolory tla i akcenty do landing v2 design.
+   Lekka warstwa nad tailwind.css — komponenty Tailwinda zostaja
+   nieruszone, ale wizualnie dopasowane do nowej palety.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* Body font - Plus Jakarta Sans zamiast Inter */
+body, body.font-body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
+
+/* Headings - upewnij ze Bricolage Grotesque */
+h1, h2, h3, h4, .font-display {
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif !important;
+    letter-spacing: -0.02em;
+}
+
+/* Tla - zblizone do landing v2 cieplo-bezowe */
+body.bg-cream {
+    background-color: #FFF8F3 !important;          /* landing --bg */
+}
+html.dark body.dark\:bg-night,
+.dark body {
+    background-color: #14101F !important;          /* landing dark --bg */
+}
+
+/* Tekst body wyrazniejszy plum tone (landing --fg) */
+body.text-ink, body .text-ink:not([class*="border"]):not([class*="bg-"]) {
+    color: #2C2440;                                /* landing --fg */
+}
+.dark .dark\:text-pale, .dark body { color: #E9E3F3; }
+
+/* DARK MODE: wymusza jasny tekst tam gdzie elementy maja JEDNOCZESNIE text-ink + dark:text-pale.
+   Bez tego specificity reguly ".text-ink:not()" przebija ".dark .dark\:text-pale" i tekst znika. */
+html.dark body .text-ink.dark\:text-pale,
+html.dark body [class~="text-ink"][class*="dark:text-pale"],
+html.dark body .dark\:text-pale {
+    color: #E9E3F3 !important;
+}
+
+/* Headings dziedzicza heading color */
+h1, h2, h3, h4 { color: #211733; }                 /* landing --heading */
+.dark h1, .dark h2, .dark h3, .dark h4 { color: #FBF4EE; }
+
+/* Headings z dark:text-pale - upewnij ze nadpisujemy */
+html.dark body h1.dark\:text-pale,
+html.dark body h2.dark\:text-pale,
+html.dark body h3.dark\:text-pale,
+html.dark body h4.dark\:text-pale { color: #FBF4EE !important; }
+
+/* Powierzchnie kart - bardziej kremowe (landing --surface light, --surface dark) */
+.bg-paper { background-color: #FFFFFF !important; }
+.dark .dark\:bg-deep { background-color: #221A35 !important; }
+
+/* Drobny tekst pomocniczy */
+.text-mist { color: #6A6280; }                     /* landing --fg-2 */
+html.dark body .text-mist, html.dark body .dark\:text-mist { color: #ABA2C2 !important; }
+
+/* Bordery hairline */
+.border-mist\/15, .border-mist\/10, .border-mist\/20 {
+    border-color: rgba(244, 232, 223, 0.6) !important;  /* landing --line tinted */
+}
+.dark .border-mist\/15, .dark .border-mist\/10, .dark .border-mist\/20 {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Akcent secondary -> landing teal */
+.text-secondary { color: #0B7B87 !important; }
+.bg-secondary { background-color: #0E9BAA !important; }
+.bg-secondary\/10, .bg-secondary\/15 { background-color: rgba(14, 155, 170, 0.10) !important; }
+.bg-secondary\/30, .bg-secondary\/40 { background-color: rgba(14, 155, 170, 0.30) !important; }
+.border-secondary, .border-secondary\/30, .border-secondary\/40 {
+    border-color: rgba(14, 155, 170, 0.35) !important;
+}
+
+/* Primary buttons - landing radius i shadow */
+.bg-primary-deep, .bg-primary {
+    background-color: #FF6B35 !important;
+    color: #fff !important;
+    box-shadow: 0 16px 34px rgba(255, 107, 53, 0.34) !important;
+    transition: transform .18s cubic-bezier(.16,1,.3,1), background-color .18s, box-shadow .18s !important;
+}
+.bg-primary-deep:hover, .bg-primary:hover {
+    background-color: #ED5320 !important;
+    transform: translateY(-2px);
+}
+.bg-primary\/10, .bg-primary\/15 { background-color: rgba(255, 107, 53, 0.10) !important; color: #ED5320 !important; }
+.bg-primary\/20, .bg-primary\/25 { background-color: rgba(255, 107, 53, 0.18) !important; }
+
+/* Accent gradient backgrounds → landing orange+sun */
+.bg-gradient-to-r.from-primary.to-primary-deep,
+.bg-gradient-to-br.from-primary {
+    background-image: linear-gradient(135deg, #FF6B35, #FF8A4C 55%, #FFC23C) !important;
+}
+
+/* Pop shadow - landing-style */
+.shadow-pop {
+    box-shadow: 0 14px 34px rgba(58, 30, 12, 0.10) !important;
+}
+.shadow-pop-lg {
+    box-shadow: 0 30px 70px rgba(58, 30, 12, 0.16) !important;
+}
+
+/* Cards lift on hover - bardziej landing-friendly */
+[class*="bg-paper"][class*="border"][class*="rounded"]:hover,
+[class*="bg-paper"][class*="border"][class*="rounded-2xl"]:hover,
+[class*="bg-paper"][class*="border"][class*="rounded-3xl"]:hover {
+    border-color: rgba(255, 201, 178, 0.6) !important; /* landing --orange-200 tinted */
+}
+
+/* Selection coral */
+::selection { background: #FF6B35; color: #fff; }
+
+/* ============================================================
+   Kalendarz dostepnosci (sekcja 02) - paleta 6-stopniowa
+   Kazdy stopien ma WLASNY hue, nie tylko opacity. Wymusza
+   gwarantowane kolory niezaleznie od Tailwind purge.
+   ============================================================ */
+/* 7/7 - wszyscy moga (emerald + ring) */
+.cal-7 {
+    background-color: #10B981 !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35),
+                0 0 0 1px rgba(16, 185, 129, 0.40);
+    font-weight: 800;
+}
+html.dark .cal-7 {
+    background-color: #34D399 !important;
+    color: #052E1F !important;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.50),
+                0 0 0 1px rgba(52, 211, 153, 0.45);
+}
+
+/* ~85%+ - solid teal */
+.cal-6 {
+    background-color: #0E9BAA !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+html.dark .cal-6 {
+    background-color: #14B6C7 !important;
+    color: #04303A !important;
+}
+
+/* ~70%+ - jasny aqua/cyan */
+.cal-5 {
+    background-color: #67E8F9 !important;             /* cyan-300 */
+    color: #083344 !important;
+    font-weight: 600;
+}
+html.dark .cal-5 {
+    background-color: #A5F3FC !important;             /* cyan-200 */
+    color: #083344 !important;
+}
+
+/* ~50%+ - sun yellow */
+.cal-4 {
+    background-color: #FACC15 !important;             /* yellow-400 */
+    color: #422006 !important;
+    font-weight: 600;
+}
+html.dark .cal-4 {
+    background-color: #FDE047 !important;             /* yellow-300 */
+    color: #422006 !important;
+}
+
+/* <50% - orange */
+.cal-3 {
+    background-color: #FB923C !important;             /* orange-400 */
+    color: #431407 !important;
+    font-weight: 600;
+}
+html.dark .cal-3 {
+    background-color: #FDBA74 !important;             /* orange-300 */
+    color: #431407 !important;
+}
+
+/* 0 - red przekreślony */
+.cal-0 {
+    background-color: #F87171 !important;             /* red-400 */
+    color: #450A0A !important;
+    text-decoration: line-through;
+    font-weight: 600;
+}
+html.dark .cal-0 {
+    background-color: #FCA5A5 !important;             /* red-300 */
+    color: #450A0A !important;
+    text-decoration: line-through;
+}
+
+/* total=0 (edge case - brak danych) */
+.cal-empty {
+    background-color: rgba(107, 114, 128, 0.15) !important;
+    color: #6B7280 !important;
+}
+html.dark .cal-empty {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #6B7280 !important;
+}

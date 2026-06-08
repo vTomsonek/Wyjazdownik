@@ -55,17 +55,13 @@ $bar = static function (string $label, int $votes, int $total, string $color): s
 };
 ?>
 
-<section class="py-16 md:py-24 3xl:py-32">
-    <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="section section--cream">
+    <div class="wrap">
 
-        <header class="mb-10 md:mb-14 text-center">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-fuchsia-500/15 text-fuchsia-600">SEKCJA 6b / 15</span>
-            <h2 class="font-display font-bold text-3xl md:text-5xl 3xl:text-6xl text-ink dark:text-pale mb-3">
-                ✨ Charakter wyjazdu
-            </h2>
-            <p class="text-mist text-lg max-w-2xl mx-auto">
-                Czego ekipa oczekuje, jak chce fotografować, ile czasu razem.
-            </p>
+        <header class="sec-head">
+            <span class="eyebrow eyebrow--teal"><span class="iconify" data-icon="ph:sparkle-bold"></span> Charakter wyjazdu</span>
+            <h2 style="margin-top:18px">✨ Czego ekipa oczekuje</h2>
+            <p>Jak chcecie fotografować, ile czasu razem, jak intensywnie.</p>
         </header>
 
         <?php if ($count === 0): ?>

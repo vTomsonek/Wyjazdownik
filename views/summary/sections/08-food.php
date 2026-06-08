@@ -52,14 +52,12 @@ foreach ($responses as $resp) {
 $avgOpenness = empty($opennessValues) ? 0 : (array_sum($opennessValues) / count($opennessValues));
 ?>
 
-<section class="bg-paper dark:bg-deep py-16 md:py-24 3xl:py-32 border-t border-mist/15">
-    <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="section section--cream">
+    <div class="wrap">
 
-        <header class="mb-10 md:mb-14 text-center">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-accent">SEKCJA 8 / 15</span>
-            <h2 class="font-display font-bold text-3xl md:text-5xl 3xl:text-6xl text-ink dark:text-pale mb-3">
-                🍽️ Kuchnia
-            </h2>
+        <header class="sec-head">
+            <span class="eyebrow"><span class="iconify" data-icon="ph:fork-knife-bold"></span> Kuchnia</span>
+            <h2 style="margin-top:18px">🍽️ Co i jak wam smakuje</h2>
         </header>
 
         <?php if ($count === 0): ?>

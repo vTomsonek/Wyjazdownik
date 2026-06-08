@@ -48,17 +48,13 @@ $attitudeOpts = QuestionLabels::get('money_attitude')['options'] ?? [];
 $fmt = static fn(int $n): string => number_format($n, 0, ',', ' ');
 ?>
 
-<section class="py-16 md:py-24 3xl:py-32">
-    <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="section">
+    <div class="wrap">
 
-        <header class="mb-10 md:mb-14 text-center">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">SEKCJA 3 / 7</span>
-            <h2 class="font-display font-bold text-3xl md:text-5xl 3xl:text-6xl text-ink dark:text-pale mb-3">
-                💰 Budżet ekipy
-            </h2>
-            <p class="text-mist text-lg max-w-2xl mx-auto">
-                Ile kto chce wydać na osobę. Najsłabsze ogniwo wyznacza realny budżet.
-            </p>
+        <header class="sec-head">
+            <span class="eyebrow"><span class="iconify" data-icon="ph:wallet-bold"></span> Budżet ekipy</span>
+            <h2 style="margin-top:18px">Na ile realnie was stać</h2>
+            <p>Ile kto chce wydać na osobę. Najsłabsze ogniwo wyznacza realny budżet wyjazdu.</p>
         </header>
 
         <?php if ($count === 0): ?>

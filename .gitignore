@@ -20,6 +20,8 @@
 !/public/assets/uploads/banners/.gitkeep
 /public/assets/uploads/avatars/*
 !/public/assets/uploads/avatars/.gitkeep
+/public/assets/uploads/places/*
+!/public/assets/uploads/places/.gitkeep
 
 # IDE
 .idea/
@@ -43,6 +45,13 @@ desktop.ini
 
 # Original brief (uploaded - nie wrzucamy zaufanej dokumentacji do publicznego repo)
 wyjazdownik-final-prompt.md
+
+# Design handoffy (lokalne brief'y od designera)
+/design_handoff_wyjazdownik/
+/design_handoff_landing/
+
+# Backupy starych wersji partial'i (przed refactor'em landing v2)
+/views/partials/landing/_old/
 
 # Database dumps
 /database/dumps/

@@ -19,14 +19,9 @@
         sections.forEach(function (s) { s.classList.add('summary-visible'); });
     }
 
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'present-btn';
-    btn.title = 'Tryb prezentacji (F)';
-    btn.className = 'present-fab';
-    btn.textContent = 'Tryb prezentacji';
-    document.body.appendChild(btn);
-
+    // Tryb prezentacji - aktywowany klawiszem F lub przyciskiem "Tryb TV" w nav summary-nav.php
+    // (nav emituje syntetyczny KeyboardEvent F - handler na keydown ponizej wywola enter()).
+    // Brak osobnego pływającego buttona - mamy go w nav.
     var active = false;
     function enter() {
         if (document.documentElement.requestFullscreen) {
@@ -43,7 +38,10 @@
     document.addEventListener('fullscreenchange', function () {
         if (!document.fullscreenElement) leave();
     });
-    btn.addEventListener('click', enter);
+
+    // Eksponuj enter() globalnie - nav button "Tryb TV" w summary-nav.php wywola
+    // bezposrednio (zachowuje user gesture, fullscreen API wymaga trusted event).
+    window.wyjEnterPresentation = enter;
 
     function currentIdx() {
         var idx = 0, best = Infinity;

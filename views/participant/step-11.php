@@ -3,9 +3,9 @@
 $keys = ['dream_plan', 'deal_breakers'];
 ?>
 <header class="mb-8">
-    <span class="text-3xl mb-2 block">💭</span>
-    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale">Twój głos</h2>
-    <p class="text-mist mt-2">Cokolwiek chcesz dorzucić - wymarzone wakacje albo czego absolutnie unikamy.</p>
+    <span class="eyebrow eyebrow--teal" style="margin-bottom:14px"><span class="iconify" data-icon="ph:chat-circle-dots-bold"></span> Krok 11: Twój głos</span>
+    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale" style="margin-top:14px">💭 Co chcesz dorzucić</h2>
+    <p class="text-mist mt-2">Cokolwiek dorzuć — wymarzone wakacje albo czego absolutnie unikamy.</p>
 </header>
 
 <?php foreach ($keys as $key):

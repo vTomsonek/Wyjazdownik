@@ -47,17 +47,13 @@ if (!empty($everyone)) {
 $fmt = static fn($n): string => is_numeric($n) ? number_format((int) $n, 0, ',', ' ') : '—';
 ?>
 
-<section class="py-16 md:py-24 3xl:py-32 border-t border-mist/15">
-    <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="section">
+    <div class="wrap">
 
-        <header class="mb-10 md:mb-14 text-center max-w-3xl mx-auto">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-secondary/15 text-secondary">SEKCJA 15 / 15 &middot; Finałowe</span>
-            <h2 class="font-display font-bold text-3xl md:text-5xl 3xl:text-6xl text-ink dark:text-pale mb-3">
-                🎯 Inteligentne rekomendacje
-            </h2>
-            <p class="text-mist text-lg md:text-xl">
-                Wnioski algorytmu na bazie wszystkich odpowiedzi.
-            </p>
+        <header class="sec-head">
+            <span class="eyebrow eyebrow--teal"><span class="iconify" data-icon="ph:target-bold"></span> Finałowe</span>
+            <h2 style="margin-top:18px">🎯 Inteligentne rekomendacje</h2>
+            <p>Wnioski algorytmu na bazie wszystkich odpowiedzi.</p>
         </header>
 
         <!-- Kluczowe rekomendacje -->

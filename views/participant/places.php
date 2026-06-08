@@ -36,27 +36,31 @@ $hasApiKey = $googleMapsApiKey !== '';
     }
 </style>
 
-<section class="mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+<section class="section">
+    <div class="wrap" style="max-width:1400px">
 
-    <!-- Header -->
-    <div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <!-- Header w landing v2 stylu -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
             <a href="<?= e(url('/p/' . $participant->accessToken)) ?>"
-               class="text-sm text-mist hover:text-primary transition inline-flex items-center gap-1 mb-2">
-                ← Wróć
+               class="text-sm text-mist hover:text-primary transition inline-flex items-center gap-1 mb-3"
+               style="color: var(--fg-2)">
+                <span class="iconify" data-icon="ph:arrow-left-bold"></span> Wróć do ankiety
             </a>
-            <h1 class="font-display font-bold text-3xl md:text-4xl 3xl:text-5xl text-ink dark:text-pale">
-                🗺️ Atrakcje ekipy
+            <span class="eyebrow eyebrow--teal" style="margin-bottom:14px">
+                <span class="iconify" data-icon="ph:map-pin-bold"></span> Atrakcje ekipy
+            </span>
+            <h1 style="font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 4vw, 44px); margin: 14px 0 12px; color: var(--heading); line-height:1.1">
+                🗺️ Wspólna mapa miejsc
             </h1>
-            <p class="mt-2 text-mist max-w-2xl">
+            <p style="color: var(--fg-2); max-width: 560px; line-height:1.55">
                 Dodaj konkretne miejsca, które chcesz odwiedzić. Inni zobaczą Twoje propozycje
-                i (wkrótce) ocenią ile chętnie tam pojadą. Im więcej miejsc, tym lepsze trasy.
+                i ocenią ile chętnie tam pojadą. Im więcej miejsc, tym lepsze trasy.
             </p>
         </div>
         <?php if ($hasApiKey): ?>
-        <button id="add-place-btn" type="button"
-                class="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary-deep text-white font-semibold hover:bg-primary hover:scale-105 transition shadow-pop self-start md:self-end">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <button id="add-place-btn" type="button" class="btn btn-primary" style="align-self:start">
+            <span class="iconify" data-icon="ph:plus-bold"></span>
             Dodaj miejsce
         </button>
         <?php endif; ?>
@@ -373,9 +377,10 @@ $hasApiKey = $googleMapsApiKey !== '';
                     <!-- Sekcje zdjec/wideo/linkow wstawiane dynamicznie -->
                 </div>
 
-                <!-- Sekcja upload (tylko dla autora) -->
+                <!-- Sekcja upload - kazdy uczestnik moze dorzucic media do dowolnego miejsca -->
                 <div id="detail-uploader" class="hidden mt-6 pt-6 border-t border-mist/15">
-                    <h4 class="font-display font-bold text-lg mb-3 text-ink dark:text-pale">Dodaj media</h4>
+                    <h4 class="font-display font-bold text-lg mb-1 text-ink dark:text-pale">Dodaj media</h4>
+                    <p class="text-xs text-mist mb-3">Każdy z ekipy może dorzucić zdjęcia, wideo i linki - przekonaj resztę że warto tu pojechać.</p>
                     <div class="grid sm:grid-cols-3 gap-3">
                         <!-- Upload zdjecia -->
                         <label class="cursor-pointer flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-mist/30 hover:border-primary/50 hover:bg-primary/5 transition">
@@ -415,21 +420,32 @@ $hasApiKey = $googleMapsApiKey !== '';
     </div>
 
     <!-- Lightbox - pelnoekranowa galeria z nawigacja (obrazy + wideo) -->
-    <div id="lightbox" class="fixed inset-0 z-[10001] hidden bg-black/95 items-center justify-center select-none">
+    <div id="lightbox" class="fixed inset-0 z-[10001] hidden items-center justify-center select-none" style="background:#000">
         <button type="button" id="lightbox-close" aria-label="Zamknij"
-                class="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl transition flex items-center justify-center z-10">×</button>
+                class="absolute top-4 right-4 w-12 h-12 rounded-full text-white transition flex items-center justify-center z-10"
+                style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)">
+            <span class="iconify" data-icon="ph:x-bold" style="font-size:22px"></span>
+        </button>
         <button type="button" id="lightbox-prev" aria-label="Poprzednie"
-                class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl transition flex items-center justify-center z-10">‹</button>
+                class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full text-white transition flex items-center justify-center z-10"
+                style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)">
+            <span class="iconify" data-icon="ph:caret-left-bold" style="font-size:22px"></span>
+        </button>
         <button type="button" id="lightbox-next" aria-label="Następne"
-                class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl transition flex items-center justify-center z-10">›</button>
-        <div id="lightbox-counter" class="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-white/10 text-white text-sm font-mono z-10"></div>
+                class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full text-white transition flex items-center justify-center z-10"
+                style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)">
+            <span class="iconify" data-icon="ph:caret-right-bold" style="font-size:22px"></span>
+        </button>
+        <div id="lightbox-counter" class="absolute top-4 left-4 px-3 py-1.5 rounded-full text-white text-sm font-mono z-10"
+             style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)"></div>
 
         <div id="lightbox-media-container" class="max-w-full max-h-[88vh] flex items-center justify-center">
             <!-- img albo video wstawiane dynamicznie przez JS -->
         </div>
 
         <!-- Atrybucja: typ + zrodlo -->
-        <div id="lightbox-caption" class="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/10 text-white text-sm z-10 backdrop-blur-sm"></div>
+        <div id="lightbox-caption" class="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-white text-sm z-10"
+             style="background:rgba(255,255,255,0.15); backdrop-filter: blur(8px)"></div>
     </div>
 
     <!-- Modal dodawania linka (proste) -->
@@ -474,4 +490,5 @@ $hasApiKey = $googleMapsApiKey !== '';
     <script async defer
             src="https://maps.googleapis.com/maps/api/js?key=<?= e($googleMapsApiKey) ?>&libraries=places,marker&language=pl&region=PL&loading=async&callback=initPlacesMap"></script>
     <?php endif; ?>
+    </div>
 </section>

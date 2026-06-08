@@ -41,6 +41,8 @@ $description = $description ?? 'Mapa atrakcji w trasie.';
           href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Inter:wght@400;600;700&display=swap">
 
     <link rel="icon" type="image/svg+xml" href="<?= e(asset('assets/img/favicon.svg')) ?>">
+    <link rel="icon" type="image/png" sizes="256x256" href="<?= e(asset('assets/img/logo-256.png')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('assets/img/logo-256.png')) ?>">
 
     <style>
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }

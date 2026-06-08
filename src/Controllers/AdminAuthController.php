@@ -29,7 +29,7 @@ final class AdminAuthController extends Controller
             'flashError'    => flash('error'),
             'flashEmail'    => flash('email'),
             'devMagicLink'  => $this->popDevMagicLink(),
-        ], layout: 'admin');
+        ], layout: 'landing');
     }
 
     public function sendMagicLink(Request $request): never

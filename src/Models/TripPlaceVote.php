@@ -125,6 +125,30 @@ final class TripPlaceVote
         return $out;
     }
 
+    /**
+     * Per-place i per-participant lista wszystkich glosow - dla widoku
+     * "kto jak zaglosowal" (top miejsca, popup mapy).
+     * @return array<int, array<int, float>> klucz: place_id => (participant_id => score)
+     */
+    public static function votesByPlaceAndParticipant(int $tripId): array
+    {
+        $stmt = Connection::get()->prepare(
+            'SELECT v.place_id, v.participant_id, v.score
+             FROM trip_place_votes v
+             JOIN trip_places p ON p.id = v.place_id
+             WHERE p.trip_id = :tid'
+        );
+        $stmt->execute(['tid' => $tripId]);
+        $out = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $pid = (int) $row['place_id'];
+            $uid = (int) $row['participant_id'];
+            if (!isset($out[$pid])) $out[$pid] = [];
+            $out[$pid][$uid] = (float) $row['score'];
+        }
+        return $out;
+    }
+
     private static function fromRow(array $row): self
     {
         return new self(

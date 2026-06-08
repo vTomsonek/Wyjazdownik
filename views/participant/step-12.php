@@ -8,9 +8,9 @@ $totalKnown    = count(QuestionLabels::knownKeys());
 $progress      = $totalKnown > 0 ? (int) round($totalAnswered / $totalKnown * 100) : 0;
 ?>
 <header class="mb-8">
-    <span class="text-3xl mb-2 block">✨</span>
-    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale">
-        Prawie gotowe!
+    <span class="eyebrow" style="margin-bottom:14px"><span class="iconify" data-icon="ph:check-circle-bold"></span> Krok 12: Podsumowanie</span>
+    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale" style="margin-top:14px">
+        ✨ Prawie gotowe!
     </h2>
     <p class="text-mist mt-2">
         Sprawdź odpowiedzi przed wysłaniem.

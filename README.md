@@ -18,9 +18,10 @@ Każdy znajomy wypełnia ankietę, dorzuca miejsca na wspólną mapę i ocenia p
 ## Funkcje
 
 ### Planowanie przed wyjazdem
-- 📅 **Inteligentny kalendarz** — heatmapa terminów, automatycznie znajdzie dni gdzie wszyscy mogą
+- 📅 **Inteligentny kalendarz** — heatmapa terminów z paletą 6-stopniową (zielony "wszyscy" → czerwony "nikt"), automatycznie znajdzie dni gdzie wszyscy mogą
 - 💰 **Wspólny budżet** — wykres słupkowy + algorytm "najsłabsze ogniwo decyduje"
-- 🏆 **22 odznaki** — Kebab Master, Maszyna, Plażowicz, Górski Wilk, Krezus, Backpacker... algorytm przyznaje deterministycznie na podstawie odpowiedzi
+- 🏆 **43 odznaki** — Kebab Master, Maszyna, Plażowicz, Krezus, Backpacker, Wegetarianin, Adrenalinowiec, Romantyk, Eskapista, Latacz, Stadny, Samotnik, Geometra, Hojne Serce, Surowy Krytyk… algorytm deterministyczny z gate'ami konfliktów (Maszyna ↔ Leniwiec)
+- 💞 **Kompatybilność ekipy** — macierz par × par, top 3 bratnie dusze + niedopasowane pary, outsider z punchline'em "czym się różni od reszty", interaktywny modal z breakdownem zgodności per kategoria. **Blend 75% oceny miejsc na mapie + 25% ankieta** (konkretne miejsca > abstrakcyjne preferencje)
 - 🎯 **Auto-rekomendacje destynacji** — dopasowane do kombinacji preferencji ekipy
 - 📺 **Tryb prezentacji** — fullscreen z nawigacją klawiaturą, przygotowane pod TV
 
@@ -28,7 +29,7 @@ Każdy znajomy wypełnia ankietę, dorzuca miejsca na wspólną mapę i ocenia p
 - 🗺️ **Google Places autocomplete** — każdy dodaje miejsca z pełnej bazy Google (adres, zdjęcia, kategoria)
 - 📸 **Galeria mediów per miejsce** — wgrywanie zdjęć (max 5 × 5 MB) i wideo (max 3 × 50 MB), linki do bloga/YouTube/Booking
 - ⭐ **Oceny ekipy z półgwiazdkami** — 0,5–5,0★, mini-wizard do szybkiego oceniania serii miejsc
-- 🚗 **AI propozycje tras** — algorytm klastruje miejsca po lokalizacji (single-linkage 450 km), TSP nearest-neighbor, round-trip z punktu startowego, oszacowuje liczbę dni na podstawie czasu zwiedzania każdej atrakcji
+- 🚗 **AI propozycje tras** — budget-aware: pobiera min + medianę z `trip_duration_days` (ankieta), generuje 2 warianty na region ("krótka" + "pełna"). Klastrowanie single-linkage 250 km + cap średnicy 600 km (zapobiega chain-creep Słowenia→Albania). Split transit (1100 km/dzień, autostrada) vs in-region (350 km/dzień, drogi krajowe). Lista "+X pominiętych top miejsc poza budżetem" dla transparentności
 - 📍 **Punkt startowy wyjazdu** — admin wybiera miasto przez Nominatim, algorytm liczy dystanse stamtąd
 
 ### W trasie
@@ -42,17 +43,19 @@ Każdy znajomy wypełnia ankietę, dorzuca miejsca na wspólną mapę i ocenia p
 
 ### System
 - 🔗 **Magic link auth** — bez haseł, tylko email
-- 🌓 **Dark mode** — pełen, zapamiętany w localStorage
-- 📱 **Mobile-first** — wszystkie ekrany działają na telefonie, tablecie i TV (1920+)
+- 🌓 **Dark mode** — pełen, zapamiętany w localStorage (dual: `wyj-theme` + legacy `theme`)
+- 📱 **Mobile-first** — wszystkie ekrany działają na telefonie, tablecie i TV (1920+), hamburger menu na <600px
+- 🎨 **Landing v2 design system** — brand orange `#FF6B35` + teal `#0E9BAA`, fonty Bricolage Grotesque (headings) + Plus Jakarta Sans (body), Phosphor icons via Iconify CDN, naprzemienne eyebrow orange/teal dla rytmu sekcji
 
 ## Stack
 
 - **Backend** — PHP 8.1+, własny mikro-framework (router, PSR-4 autoloader, prosty MVC)
 - **Baza** — MySQL / MariaDB przez PDO + prepared statements (utf8mb4)
-- **Frontend** — Tailwind CSS production build (lokalny, przez npm), Vanilla JS
+- **Frontend** — Tailwind CSS production build + custom landing.css (design tokens, komponenty), Vanilla JS
 - **Mapy** — Google Maps JS API + Places API (New) + Geocoding API
 - **Routing samochodowy** — OSRM (`router.project-osrm.org`)
 - **Geocoding admina** — Nominatim (OpenStreetMap) do wyboru punktu startowego
+- **Ikony** — Phosphor + simple-icons przez Iconify CDN (`code.iconify.design`)
 - **Email** — PHPMailer (driver `log` w dev, `smtp` w prod)
 - **Composer** — autoloader + dependencies (`phpmailer/phpmailer`, `vlucas/phpdotenv`)
 
@@ -70,23 +73,27 @@ wyjazdownik/
 │   │                        # Summary, TripPlaces, LiveRoute)
 │   ├── Models/              # 7 modeli (Admin, Trip, Participant, MapPin,
 │   │                        # TripPlace, TripPlaceVote, TripPlaceMedia)
-│   ├── Services/            # 14 serwisów (Auth, Mailer, Ranking,
+│   ├── Services/            # 15 serwisów (Auth, Mailer, Ranking,
 │   │                        # Recommendation, RouteSuggestion, MapColor,
-│   │                        # SummaryAggregator, Upload, ...)
+│   │                        # SummaryAggregator, Upload, Compatibility, ...)
 │   ├── Database/            # Connection.php (PDO singleton)
 │   ├── Helpers/             # Csrf, QuestionLabels, QuestionFormatter,
 │   │                        # Validator, functions (url, asset, e, view, ...)
 │   └── css/tailwind.css     # entry point dla build:css
-├── views/                   # 86 szablonów PHP
-│   ├── layouts/             # app, admin, summary, wizard, route
-│   ├── partials/            # header, footer, landing/, illustrations/, wizard/
-│   ├── home/                # landing page
-│   ├── admin/               # CRUD wyjazdów i uczestników
-│   ├── participant/         # wizard 12 kroków + atrakcje (places.php) +
-│   │                        # mini-wizard ocen (places-rate.php)
-│   ├── summary/             # 16 sekcji podsumowania
+├── views/                   # 100+ szablonów PHP
+│   ├── layouts/             # 6 layoutów: landing, app, admin, summary, wizard, route
+│   │                        # (każdy z landing.css + Iconify CDN + dual theme sync)
+│   ├── partials/landing/    # 14 partials: hero, problem, how-it-works, features,
+│   │                        # map-feature, audience, badges, faq, final-cta,
+│   │                        # nav, admin-nav, summary-nav, footer
+│   ├── home/                # landing page (composition z 11 partials landing/)
+│   ├── admin/               # CRUD wyjazdów i uczestników (landing v2 style)
+│   ├── participant/         # welcome + wizard 12 kroków + thanks + atrakcje
+│   │                        # (places.php) + mini-wizard ocen (places-rate.php)
+│   ├── summary/             # 17 sekcji podsumowania (w tym 05b top-places,
+│   │                        # 12 ranking, 12b kompatybilność)
 │   └── route/               # live.php — tryb trasy
-├── database/                # schema.sql + seed.sql + 12 migracji
+├── database/                # schema.sql + seed.sql + 14 migracji
 ├── config/                  # config.php (czyta .env)
 ├── cron/                    # cleanup.php (cron job)
 ├── docs/                    # deployment.md + Apache/PHP-FPM templates
@@ -159,6 +166,7 @@ ls database/migrations/
 # 011_trip_place_votes_decimal.sql  - półgwiazdki (DECIMAL zamiast TINYINT)
 # 012_trip_places_visit_minutes.sql - czas zwiedzania per miejsce
 # 013_extend_google_place_id.sql    - VARCHAR(255) dla nowych dłuższych ID Google
+# 014_trip_place_media_participant.sql - kolumna participant_id dla mediów (kto wgrał)
 ```
 
 Migracja:

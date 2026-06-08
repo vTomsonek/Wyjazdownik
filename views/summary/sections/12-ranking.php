@@ -15,19 +15,17 @@ $gradient = static function (string $color): string {
 };
 ?>
 
-<section class="bg-gradient-to-br from-ink via-deep to-ink text-pale py-16 md:py-24 3xl:py-32 relative overflow-hidden border-t border-mist/15">
-    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle, #FFD23F 1px, transparent 1.5px); background-size: 32px 32px;"></div>
+<section class="section section--ink" style="position:relative;overflow:hidden;color:var(--pale)">
+    <div style="position:absolute;inset:0;opacity:.10;background-image:radial-gradient(circle, #FFD23F 1px, transparent 1.5px);background-size:32px 32px;pointer-events:none"></div>
 
-    <div class="relative mx-auto max-w-7xl 3xl:max-w-[1600px] px-4 sm:px-6 lg:px-8">
+    <div class="wrap" style="position:relative">
 
-        <header class="mb-10 md:mb-14 text-center max-w-3xl mx-auto">
-            <span class="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-accent/20 text-accent">SEKCJA 12 / 15 &middot; Klejnot korony</span>
-            <h2 class="font-display font-bold text-4xl md:text-6xl 3xl:text-7xl mb-4">
-                🏆 Ranking ekipy
-            </h2>
-            <p class="text-mist text-lg md:text-xl">
-                Algorytm na podstawie odpowiedzi przyznał każdemu odznakę. Czas na śmiech.
-            </p>
+        <header class="sec-head">
+            <span class="eyebrow" style="background:rgba(255,210,63,.18);color:#FFD23F;border-color:rgba(255,210,63,.30)">
+                <span class="iconify" data-icon="ph:crown-bold"></span> Klejnot korony
+            </span>
+            <h2 style="margin-top:18px;color:#fff">🏆 Ranking ekipy</h2>
+            <p style="color:rgba(255,255,255,.72)">Algorytm na podstawie odpowiedzi przyznał każdemu odznakę. Czas na śmiech.</p>
         </header>
 
         <?php if (empty($awards)): ?>

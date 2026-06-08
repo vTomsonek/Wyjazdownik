@@ -1,6 +1,8 @@
 <?php
 /**
- * Layout panelu admina.
+ * Layout panelu admina - landing v2 design.
+ * Uzywa landing.css + landing.js (z theme toggle FAQ accordion scroll reveal),
+ * + dedicated admin-nav z greeting + logout.
  *
  * @var string      $content
  * @var string|null $title
@@ -13,7 +15,7 @@ $description = $description ?? 'Panel administratora Wyjazdownik.pl';
 $admin       = (new AuthService())->currentAdmin();
 $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
 ?><!DOCTYPE html>
-<html lang="pl" class="scroll-smooth">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,100 +25,40 @@ $canonical   = (string) url($_SERVER['REQUEST_URI'] ?? '/');
     <title><?= e($title) ?></title>
     <meta name="description" content="<?= e($description) ?>">
 
+    <!-- Theme init przed CSS - anti-FOUC -->
     <script>
         (function () {
             try {
-                const stored = localStorage.getItem('theme');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if (stored === 'dark' || (!stored && prefersDark)) {
-                    document.documentElement.classList.add('dark');
+                var t = localStorage.getItem('wyj-theme');
+                if (t === 'dark' || t === 'light') {
+                    document.documentElement.setAttribute('data-theme', t);
                 }
-            } catch (e) { /* noop */ }
+            } catch (e) {}
         })();
     </script>
 
-    <!-- Critical CSS inline + Tailwind async -->
-    <style>
-        *,::before,::after{box-sizing:border-box;border:0 solid #e5e7eb}
-        html{line-height:1.5;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
-        body{margin:0;min-height:100vh;display:flex;flex-direction:column;
-             font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;
-             background:#FFF8F0;color:#1A1A2E}
-        html.dark body{background:#0F1419;color:#F0F4F8}
-        main{flex:1 1 0%}
-        h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;margin:0}
-        img,svg{display:block;max-width:100%;height:auto}
-    </style>
-    <link rel="preload" as="style" href="<?= e(asset('assets/css/tailwind.css')) ?>">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/tailwind.css')) ?>" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="<?= e(asset('assets/css/tailwind.css')) ?>"></noscript>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
-    <link rel="stylesheet" media="print" onload="this.media='all'"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
-    <noscript>
-        <link rel="stylesheet"
-              href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Inter:wght@400;600;700&display=swap">
-    </noscript>
+    <link rel="preconnect" href="https://api.iconify.design" crossorigin>
 
-    <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/landing.css')) ?>">
+
     <link rel="icon" type="image/svg+xml" href="<?= e(asset('assets/img/favicon.svg')) ?>">
+    <link rel="icon" type="image/png" sizes="256x256" href="<?= e(asset('assets/img/logo-256.png')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('assets/img/logo-256.png')) ?>">
+
+    <script src="https://code.iconify.design/3/3.1.1/iconify.min.js" defer></script>
 </head>
-<body class="font-body bg-cream text-ink dark:bg-night dark:text-pale min-h-screen flex flex-col antialiased">
+<body>
 
-    <header class="sticky top-0 z-40 bg-cream/85 dark:bg-night/85 backdrop-blur border-b border-mist/15">
-        <div class="mx-auto max-w-7xl 3xl:max-w-[1600px] flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 md:py-4">
-            <a href="<?= e(url('/')) ?>"
-               class="flex items-center gap-2 text-xl sm:text-2xl 3xl:text-3xl"
-               title="Wróć na stronę główną">
-                <?php require BASE_PATH . '/views/partials/logo.php'; ?>
-            </a>
+    <?php require BASE_PATH . '/views/partials/landing/admin-nav.php'; ?>
 
-            <nav class="flex items-center gap-2 sm:gap-3">
-                <?php if ($admin !== null): ?>
-                    <span class="hidden sm:inline text-sm text-mist">
-                        Cześć, <strong class="text-ink dark:text-pale"><?= e($admin->name) ?></strong>
-                    </span>
-                    <a href="<?= e(url('/admin/logout')) ?>"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm
-                              text-ink dark:text-pale hover:bg-primary/10 transition">
-                        Wyloguj
-                    </a>
-                <?php else: ?>
-                    <a href="<?= e(url('/')) ?>"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm
-                              text-ink dark:text-pale hover:bg-primary/10 transition">
-                        ← Strona główna
-                    </a>
-                <?php endif; ?>
-
-                <button type="button" id="theme-toggle"
-                        class="inline-flex items-center justify-center w-10 h-10 rounded-full
-                               text-ink dark:text-pale hover:bg-primary/10 transition"
-                        aria-label="Przełącz tryb jasny/ciemny">
-                    <svg class="w-5 h-5 dark:hidden" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="4"/>
-                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-                    </svg>
-                    <svg class="w-5 h-5 hidden dark:block" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
-                </button>
-            </nav>
-        </div>
-    </header>
-
-    <main class="flex-1">
+    <main>
         <?= $content ?>
     </main>
 
-    <?php require BASE_PATH . '/views/partials/footer.php'; ?>
+    <?php require BASE_PATH . '/views/partials/landing/footer.php'; ?>
 
-    <script src="<?= e(asset('assets/js/app.js')) ?>"></script>
+    <script src="<?= e(asset('assets/js/landing.js')) ?>" defer></script>
 </body>
 </html>

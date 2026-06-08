@@ -3,9 +3,9 @@
 $keys = ['budget_range', 'trip_duration_days', 'has_passport', 'money_attitude'];
 ?>
 <header class="mb-8">
-    <span class="text-3xl mb-2 block">📋</span>
-    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale">Podstawy</h2>
-    <p class="text-mist mt-2">Pierwsze rzeczy, które trzeba ustalić - budżet, czas, paszport.</p>
+    <span class="eyebrow" style="margin-bottom:14px"><span class="iconify" data-icon="ph:list-checks-bold"></span> Krok 2: Podstawy</span>
+    <h2 class="font-display font-bold text-2xl md:text-3xl text-ink dark:text-pale" style="margin-top:14px">📋 Podstawowe ustalenia</h2>
+    <p class="text-mist mt-2">Pierwsze rzeczy, które trzeba ustalić — budżet, czas, paszport.</p>
 </header>
 
 <?php foreach ($keys as $key):
